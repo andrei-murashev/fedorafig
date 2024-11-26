@@ -1,11 +1,17 @@
+# System packages
 import argparse
+import textwrap
+
+# Local packages
+import cfg
+from check import Check
 
 
 # TODO: Check professionalism
 class MultiArgumentError(Exception):
   def __init__(self, *args):
-    self.args = args
-    self.msg = f"Found arguments incompatible together: {', '.join(args)}"
+    self.args = ['--' + arg.replace('_', '-') for arg in args]
+    self.msg = f"Found flags incompatible together: {', '.join(self.args)}"
   
   def __str__(self):
     if self.args == None:
@@ -14,41 +20,79 @@ class MultiArgumentError(Exception):
       return self.msg
 
 
-def enforce_mutually_exclusive_groups(args, group1, group2):
-  args1 = [action.dest for action in group1._group_actions]
-  args2 = [action.dest for action in group2._group_actions]
-  print("ARGS:", args1, args2)
-  for arg1 in args1:
-    for arg2 in args2:
-      if getattr(args, arg1) != None and getattr(args, arg2) != None:
-        raise MultiArgumentError(arg1, arg2)
+
+# TODO: Write test for:
+def enforce_mutually_exclusive_groups(arg_list, group1, group2):
+  flags1 = [action.dest for action in group1._group_actions]
+  flags2 = [action.dest for action in group2._group_actions]
+  for flag1 in flags1:
+    for flag2 in flags2:
+      arg1 = getattr(arg_list, flag1)
+      arg2 = getattr(arg_list, flag2)
+      if arg1 and arg2:
+        raise MultiArgumentError(flag1, flag2)
 
 
+# TODO: Add examples.
 def main(*args, **kwargs):
   parser = argparse.ArgumentParser(
+    formatter_class=argparse.RawDescriptionHelpFormatter,
     prog='fedorafig',
-    description=
-      "CLI utility for Fedora Linux to configure your system \
-      from a JSON file.",
-    epilog=
-      "Find this project and its documentation at GitHub: \
-      https://github.com/amura-dev/fedorafig"
+    description=textwrap.dedent("""
+      CLI utility for Fedora Linux to configure your system
+      from a JSON file
+    """.replace('\n', ' ')),
+    epilog=textwrap.dedent("""
+    Find this project and its documentation on GitHub at:
+    https://github.com/amura-dev/fedorafig
+    """)
   )
-  subparsers = parser.add_subparsers()
+
+  subparsers = parser.add_subparsers(
+    title='commands',
+    description="Main commands of the utility."
+  )
 
   parser_check = subparsers.add_parser('check')
-  parser_check.add_argument('-k', '--keep-checksums')
+  yes_checksum = parser_check.add_argument_group('Calculating checksum')
+  no_checksum = parser_check.add_argument_group('Not calculating checksum')
 
-  no_checksum = parser_check.add_argument_group('no checksum')
-  no_checksum.add_argument('-n', '--no-checksum')
+  parser_check.add_argument(
+    'cfg_dir',
+    help=f'System configuration directory in {cfg.CFG_DIR}'
+  )
 
-  yes_checksum = parser_check.add_argument_group('yes checksum')
-  yes_checksum.add_argument('-c', '--only-checksum')
-  yes_checksum.add_argument('-s', '--show-checksum')
+  parser_check.add_argument(
+    '-k', '--keep-checksums',
+    action='store_true', 
+    default=False,
+    help='something'
+  )
 
-  args = parser.parse_args()
-  enforce_mutually_exclusive_groups(args, yes_checksum, no_checksum)
-  print(args)
+  yes_checksum.add_argument(
+    '-c',
+    '--only-checksum',
+    action='store_true',
+    default=False
+  )
+
+  yes_checksum.add_argument(
+    '-s',
+    '--show-checksum',
+    action='store_true',
+    default=False
+  )
+
+  no_checksum.add_argument(
+    '-n',
+    '--no-checksum',
+    action='store_true',
+    default=False
+  )
+
+  arg_list = parser.parse_args()
+  enforce_mutually_exclusive_groups(arg_list, yes_checksum, no_checksum)
+  Check(vars(arg_list))
 
 
 if __name__ == '__main__':
