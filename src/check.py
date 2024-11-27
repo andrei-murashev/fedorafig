@@ -6,8 +6,8 @@ import cfg
 
 
 class Check():
-  def __init__(self, args):
-    self.args = args
+  def __init__(self, arg_list):
+    self.args = vars(arg_list)
     self.checksum = ''
     print(self.args)
 
