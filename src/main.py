@@ -1,9 +1,9 @@
 # TODO: Write tests for everthing
 # System packages
-import inspect
+import os
 import argparse
 import textwrap
-import itertools
+import fileinput
 
 # Local packages
 import cfg
@@ -14,9 +14,15 @@ class MyArgumentParser(argparse.ArgumentParser):
   parser_map = {}
   mutually_excluded_groups = {}
 
-  def __init__(self, *args, **kwargs):
-    super().__init__(*args, **kwargs)
-    self.name = kwargs['prog']
+  def __init__(self, prog=None, *args, **kwargs):
+    super().__init__(prog, *args, **kwargs)
+
+    if prog in self.__class__.parser_map.keys():
+      raise Exception(f'Parser already exists for: {prog}')
+    elif prog == None:
+      return
+
+    self.name = prog
     self.__class__.parser_map[self.name] = self
 
 
@@ -25,7 +31,15 @@ class MyArgumentParser(argparse.ArgumentParser):
       {msg}
       Try '{self.name} --help' for more information.
     """).strip())
-    print(exit_msg, end='')
+    exit(2)
+
+
+  @staticmethod
+  def custom_error(name, msg):
+    print(textwrap.dedent(f"""
+      {name}: error: {msg}
+      Try '{name} --help' for more information.
+    """).strip())
     exit(2)
 
   
@@ -47,9 +61,9 @@ class MyArgumentParser(argparse.ArgumentParser):
       for group in groups:
         try: vals = [getattr(args, flag) for flag in group]
         except AttributeError: return args
-        matches.append(self.list_disjunction(vals))
+        matches.append(self.__list_disjunction(vals))
       
-      collision_found = self.list_conjunction(matches)
+      collision_found = self.__list_conjunction(matches)
       if collision_found:
         # TODO: format the error message to display the flags
         msg = 'arguments from mutually exclusive groups were used:'
@@ -58,9 +72,7 @@ class MyArgumentParser(argparse.ArgumentParser):
     return args
 
 
-
-  @staticmethod
-  def list_disjunction(xs):
+  def __list_disjunction(xs):
     ret = False
     for x in xs:
       ret = ret or x
@@ -68,8 +80,7 @@ class MyArgumentParser(argparse.ArgumentParser):
     return ret
 
 
-  @staticmethod
-  def list_conjunction(xs):
+  def __list_conjunction(xs):
     ret = True
     for x in xs:
       ret = ret and x
@@ -78,8 +89,8 @@ class MyArgumentParser(argparse.ArgumentParser):
 
 
 
-# TODO: Add examples.
-def main(*args, **kwargs):
+# TODO: Add examples, write help prompts
+def main():
   parser = MyArgumentParser(
     formatter_class=argparse.RawTextHelpFormatter,
     prog='fedorafig',
@@ -90,6 +101,12 @@ def main(*args, **kwargs):
     Find this project and its documentation on GitHub at:
     https://github.com/amura-dev/fedorafig
     """.strip())
+  )
+
+  parser.add_argument(
+    '-f', '--set-cfg-dir',
+    type=set_cfg_dir,
+    help='set the config dir to something, and it will be this until set again'
   )
 
   subparsers = parser.add_subparsers(
@@ -148,14 +165,32 @@ def main(*args, **kwargs):
   """
 
   args = parser.parse_args()
+  '''
   if not hasattr(args, 'func'):
     parser.error('No command specified')
-  args.func(args)
+  '''
+  print(args)
+  try: args.func(args)
+  except AttributeError: pass
+
+
+def set_cfg_dir(arg):
+  fpath = os.path.abspath(arg)
+  if not(os.path.exists(fpath) and os.path.isdir(fpath)):
+    MyArgumentParser().custom_error('fedorafig',
+      f'argument -f/--set-cfg-dir: path does not exist or is not a \
+      directory: {fpath}'.replace('  ', ''))
+
+  for line in fileinput.input('cfg.py', inplace=True):
+    if line.startswith('cfg_dir_path ='):
+      line_new = f"cfg_dir_path = '{fpath}'"
+      print(line_new)
+    else:
+      print(line, end='')
 
 
 def check(args):
   print('check reached')
-  pass
 
 
 if __name__ == '__main__':
