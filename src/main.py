@@ -1,4 +1,4 @@
-# TODO: Write tests for everthing
+# TODO: Write tests for everything
 # System packages
 import os
 import argparse
@@ -168,8 +168,20 @@ def main():
   '''
   if not hasattr(args, 'func'):
     parser.error('No command specified')
+
+  if not args
+    parser.error("No flags or arguments given")
   '''
-  print(args)
+  no_option = True
+  for val in vars(args).values():
+    if val != None:
+      no_option = False
+      break
+
+  if no_option:
+    parser.error("No arguments were provided")
+
+
   try: args.func(args)
   except AttributeError: pass
 
