@@ -1,8 +1,11 @@
 # System packages
+import os
+import glob
 import json
 
 # Local packages
 import cfg
+import errors
 
 
 class Check():
@@ -18,10 +21,29 @@ class Check():
 
 
   def __delete_checksums(self):
-    pass
+    state_dir = os.path.abspath('~/.local/state/fedorafig')
+    try:
+      os.makedirs(state_dir, exists_ok=True)
+    except FileExistsError:
+      os.remove(state_dir)
+      exit(1)
+
+    pattern = '*.sha256'
+    matches = glob.glob(f'{state_dir}/{pattern}')
+    
+    for match in matches:
+      try: os.remove(match)
+      except PermissionError:
+        errors.exit1(f"No permission to remove file: {match}")
+      except IsADirectoryError:
+        errors.exit1(f"Cannot remove a directory: {match}")
+      except OSError:
+        errors.exit1(f"OS error prevents from deletion: {match}")
+
 
   def __check_syntax(self):
     pass
+
 
   def __calc_checksum(self):
     pass
