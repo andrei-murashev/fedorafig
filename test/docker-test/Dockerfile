@@ -1,6 +1,6 @@
 FROM fedora:40
 
-# Installing requied packages.
+# Installing required packages.
 RUN \
   dnf install -y \
   python3 \
