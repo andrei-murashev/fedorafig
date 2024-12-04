@@ -22,8 +22,9 @@ ENV HOME=/home/user
 
 
 # Install `fedorafig`
-RUN git clone https://github.com/amura-dev/fedorafig/tree/dev -b dev
-RUN cd fedora && chmod u+x install.sh && ./install.sh
+RUN git clone https://github.com/amura-dev/fedorafig -b dev
+RUN cd fedorafig && chmod u+x install.sh && ./install.sh
+RUN cd .. && rm -rf fedorafig
 
 #COPY test/files .config/fedorafig
 #COPY src bin/fedorafig-src

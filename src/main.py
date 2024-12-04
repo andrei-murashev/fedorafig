@@ -1,3 +1,5 @@
+#!/bin/env python3
+
 # TODO: Write tests for everything
 # System packages
 import os
