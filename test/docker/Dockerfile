@@ -22,18 +22,10 @@ ENV HOME=/home/user
 
 
 # Install `fedorafig`
-ARG CACHE_BUST=0
-RUN git clone https://github.com/amura-dev/fedorafig -b dev --verbose
+COPY . $HOME/fedorafig
+RUN echo 'sudo' | sudo -S chown -R user:user $HOME
 RUN cd fedorafig && chmod u+x install.sh && ./install.sh
 RUN rm -rf fedorafig
-
-#COPY test/files .config/fedorafig
-#COPY src bin/fedorafig-src
-#RUN \
-#  echo 'sudo' | sudo -S chown -R user:user "$HOME"                && \
-#  chmod u+x bin/fedorafig-src/main.py                             && \
-#  ln -s "$HOME"/bin/fedorafig-src/main.py "$HOME"/bin/fedorafig   && \
-#  chmod u+x bin/fedorafig-src/test.sh
 
 # Runs tests.
 # CMD ["/home/user/bin/fedorafig-src/test.sh"]
