@@ -1,4 +1,4 @@
-FROM fedora:40
+FROM fedora:41
 
 # Installing required packages.
 RUN \
@@ -22,9 +22,10 @@ ENV HOME=/home/user
 
 
 # Install `fedorafig`
-RUN git clone https://github.com/amura-dev/fedorafig -b dev
+ARG CACHE_BUST=0
+RUN git clone https://github.com/amura-dev/fedorafig -b dev --verbose
 RUN cd fedorafig && chmod u+x install.sh && ./install.sh
-RUN cd .. && rm -rf fedorafig
+RUN rm -rf fedorafig
 
 #COPY test/files .config/fedorafig
 #COPY src bin/fedorafig-src
