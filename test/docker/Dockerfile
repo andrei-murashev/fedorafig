@@ -1,11 +1,11 @@
-FROM fedora:41
+FROM fedora:40
 
 # Installing required packages.
-RUN \
-  dnf install -y \
+RUN dnf install -y \
   python3 \
-  neovim \
   ncurses \
+  neovim \
+  tree \
   git
 
 # Creates a typical user scenario.
@@ -17,12 +17,13 @@ USER user
 WORKDIR /home/user
 ENV USER=user
 ENV HOME=/home/user
-# ENV FEDORAFIG_SRC_PATH=/home/user/bin/fedorafig-src
-# ENV FEDORAFIG_CFG_PATH=/home/user/.config/fedorafig
+ENV FEDORAFIG_CFG_PATH=/home/user/.config/fedorafig
+ENV FEDORAFIG_SRC_PATH=/home/user/.local/bin/fedorafig
 
 
 # Install `fedorafig`
 COPY . $HOME/fedorafig
+COPY test/cfgs/. $FEDORAFIG_CFG_PATH
 RUN echo 'sudo' | sudo -S chown -R user:user $HOME
 RUN cd fedorafig && chmod u+x install.sh && ./install.sh
 RUN rm -rf fedorafig

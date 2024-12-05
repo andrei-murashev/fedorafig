@@ -9,7 +9,7 @@ import fileinput
 
 # Local packages
 import cfg
-from check import Check
+from check import Check, CheckException
 
 
 class MyArgumentParser(argparse.ArgumentParser):
@@ -74,8 +74,7 @@ class MyArgumentParser(argparse.ArgumentParser):
     return args
 
 
-  @staticmethod
-  def __list_disjunction(xs):
+  def __list_disjunction(self, xs):
     ret = False
     for x in xs:
       ret = ret or x
@@ -83,8 +82,7 @@ class MyArgumentParser(argparse.ArgumentParser):
     return ret
 
 
-  @staticmethod
-  def __list_conjunction(xs):
+  def __list_conjunction(self, xs):
     ret = True
     for x in xs:
       ret = ret and x
@@ -108,7 +106,7 @@ def main():
   )
 
   parser.add_argument(
-    '-f', '--set-cfg-dir',
+    '-f', '--new-cfg-dir',
     type=set_cfg_dir,
     help='set the config dir to something, and it will be this until set again'
   )
@@ -120,7 +118,7 @@ def main():
 
   parser_check = subparsers.add_parser(
     'check',
-    usage='%(prog)s [-h] [-k] [-c, -s | -n] CFG_DIR'
+    usage='%(prog)s [-h] [-k] [-c, -s | -n] CFG_FILE_PATH'
   )
 
   yes_checksum = parser_check.add_argument_group('Use checksum')
@@ -128,8 +126,8 @@ def main():
   parser_check.set_defaults(func=check)
 
   parser_check.add_argument(
-    'CFG_DIR',
-    help=f'System configuration directory in {cfg.CFG_DIR}'
+    'CFG_FILE',
+    help=f'System configuration JSON file in {cfg.CFG_DIR}'
   )
 
   parser_check.add_argument(
@@ -191,23 +189,27 @@ def main():
 
 
 def set_cfg_dir(arg):
-  fpath = os.path.abspath(arg)
+  fpath = cfg.getpath(arg)
   if not(os.path.exists(fpath) and os.path.isdir(fpath)):
     MyArgumentParser().custom_error('fedorafig',
-      f'argument -f/--set-cfg-dir: path does not exist or is not a \
+      f'argument -f/--new-cfg-dir: path does not exist or is not a \
       directory: {fpath}'.replace('  ', ''))
 
   for line in fileinput.input('cfg.py', inplace=True):
-    if line.startswith('cfg_dir_path ='):
-      line_new = f"cfg_dir_path = '{fpath}'"
+    if line.startswith('CFG_DIR_REL ='):
+      line_new = f"CFG_DIR_REL = '{fpath}'"
       print(line_new)
     else:
       print(line, end='')
 
 
 def check(args):
-  print('check reached')
-  Check(args)
+  try:
+    Check(args)
+  except CheckException as e:
+    MyArgumentParser.custom_error('fedorafig check', e)
+  except Exception as e:
+    raise Exception(e)
 
 
 if __name__ == '__main__':

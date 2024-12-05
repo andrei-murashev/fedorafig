@@ -3,16 +3,14 @@
 trap 'rm ../../Dockerfile; exit' INT
 
 cp -f Dockerfile ../../
-
-# if ! docker buildx build --build-arg CACHE_BUST=$(date +%s) -t fedora40-test .; then
 if ! docker buildx build -t test-img ../../; then
   echo "DockerTestError: Docker build failed" >&2
-  # exit 1
+  kill -INT $$
 fi
 
 if ! docker run --rm -it test-img; then
   # echo "Tests failed." >&2
-  exit 1
+  # TODO: Add tests to run in docker automatically on start.
+  kill -INT $$
 fi
-
 rm ../../Dockerfile

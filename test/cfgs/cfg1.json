@@ -1,0 +1,36 @@
+{
+  "copy files only": {
+    "syspath": "~",
+    "cfgpath": "some-files/",
+    "_COMMENT": "if the cfgpath ends in `/`, that means its a directory"
+  },
+
+  "_COMMENT": "this is another comment",
+
+  "pkg only": {
+    "pkg": "htop"
+  },
+
+  "repo only": {
+    "repo": "",
+    "_COMMENT": "equivalent of adding a repo to be possibly used later"
+  },
+
+  "script only": {
+    "script": "hello.sh"
+  },
+
+  "configured pkg": {
+    "syspath": "~/.config/neofetch",
+    "cfgpath": "neofetch/",
+    "pkg": "neofetch"
+  },
+
+  "get all repos": { "repo": "all" },
+
+  "pkg from repo": {
+    "pkg": "telegram-desktop",
+    "repo": "rpmfusion-free",
+    "_COMMENT": "this will install the pkg from this repo specifically"
+  }
+}
