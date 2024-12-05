@@ -74,6 +74,7 @@ class MyArgumentParser(argparse.ArgumentParser):
     return args
 
 
+  @staticmethod
   def __list_disjunction(xs):
     ret = False
     for x in xs:
@@ -82,6 +83,7 @@ class MyArgumentParser(argparse.ArgumentParser):
     return ret
 
 
+  @staticmethod
   def __list_conjunction(xs):
     ret = True
     for x in xs:
@@ -205,6 +207,7 @@ def set_cfg_dir(arg):
 
 def check(args):
   print('check reached')
+  Check(args)
 
 
 if __name__ == '__main__':

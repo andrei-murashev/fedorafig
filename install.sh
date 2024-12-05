@@ -1,5 +1,7 @@
 #!/bin/sh
 
+trap 'exit' INT
+
 mkdir -p ~/.config/fedorafig/ ~/.local/bin/
 mkdir -p ~/.local/state/fedorafig/ ~/.local/lib/fedorafig
 chmod u+x src/main.py

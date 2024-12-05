@@ -1,5 +1,7 @@
 #!/bin/bash
 
+trap 'rm ../../Dockerfile; exit' INT
+
 cp -f Dockerfile ../../
 
 # if ! docker buildx build --build-arg CACHE_BUST=$(date +%s) -t fedora40-test .; then

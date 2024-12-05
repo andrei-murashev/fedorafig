@@ -22,6 +22,7 @@ class Check():
 
   def __delete_checksums(self):
     state_dir = os.path.abspath('~/.local/state/fedorafig')
+
     try:
       os.makedirs(state_dir, exists_ok=True)
     except FileExistsError:
