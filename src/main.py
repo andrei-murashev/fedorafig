@@ -167,13 +167,7 @@ def main():
   """
 
   args = parser.parse_args()
-  '''
-  if not hasattr(args, 'func'):
-    parser.error('No command specified')
 
-  if not args
-    parser.error("No flags or arguments given")
-  '''
   no_option = True
   for val in vars(args).values():
     if val != None:
@@ -195,12 +189,15 @@ def set_cfg_dir(arg):
       f'argument -f/--new-cfg-dir: path does not exist or is not a \
       directory: {fpath}'.replace('  ', ''))
 
-  for line in fileinput.input('cfg.py', inplace=True):
+  cfg_path = cfg.getpath('~/.local/lib/fedorafig/cfg.py')
+  for line in fileinput.input(cfg_path, inplace=True):
     if line.startswith('CFG_DIR_REL ='):
       line_new = f"CFG_DIR_REL = '{fpath}'"
       print(line_new)
     else:
       print(line, end='')
+
+  return arg
 
 
 def check(args):
