@@ -1,7 +1,8 @@
 # System packages
 import os
-import glob
 import json
+import glob
+import hashlib
 import subprocess
 
 # Local packages
@@ -23,9 +24,13 @@ class Check():
 
     if not self.args['keep_checksums']: self.__delete_checksums()
     if not self.args['only_checksum']: self.__check_syntax()
-    if not self.args['no_checksum']: self.__calc_checksum()
+
+    if not self.args['no_checksum']: 
+      self.checksum = self.calc_checksum(self.args['CFG_FILE'])
+      self.__save_checksum()
+
     if self.args['show_checksum']:
-      print(f"{cfg.CFG_DIR} checksum: {self.checksum}")
+      print(f"{self.args['CFG_FILE']} checksum: {self.checksum}")
 
 
   def __delete_checksums(self):
@@ -53,8 +58,8 @@ class Check():
   def __check_syntax(self):
     fpath = os.path.join(cfg.CFG_DIR, self.args['CFG_FILE'])
     if not (os.path.exists(fpath) and os.path.isfile(fpath)):
-      raise CheckException(\
-        f"Configuration not found: {self.args['CFG_FILE']}")
+      raise CheckException(
+        f"Configuration not found: {fpath}")
     
     data = None
     with open(fpath, 'r') as fh:
@@ -87,12 +92,12 @@ class Check():
           
           if subentry.endswith('/'):
             if not (os.path.exists(cfgpath) and os.path.isdir(cfgpath)):
-              raise CheckException(\
+              raise CheckException(
                 f"cfgpath does not exists or is not a directory: {cfgpath}")
 
           else:
             if not (os.path.exists(cfgpath) and os.path.isfile(cfgpath)):
-              raise CheckException(\
+              raise CheckException(
                 f"cfgpath does not exists or is not a file: {cfgpath}")
 
         elif subkey == 'repo':
@@ -102,7 +107,7 @@ class Check():
           pkg = subentry
 
         elif subkey == 'script':
-          script_path = cfg.getpath(os.path.join(cfg.CFG_DIR, 'scripts', \
+          script_path = cfg.getpath(os.path.join(cfg.CFG_DIR, 'scripts',
             subentry))
           if not (os.path.exists(script_path) and os.path.isfile(script_path)):
             raise CheckException(f"Script not found: {script_path}")
@@ -141,8 +146,6 @@ class Check():
     try:
       subprocess.run(['dnf', '--setopt=reposdir=/tmp/fedorafig_repos', \
         'repolist'], check=True, stderr=subprocess.PIPE, text=True)
-      subprocess.run(['sudo', 'dnf', '--setopt=reposdir=/tmp/fedorafig_repos',\
-        'update', '-y'], check=True)
     except subprocess.CalledProcessError as e:
       raise CheckException(e.stderr.strip())
 
@@ -154,26 +157,45 @@ class Check():
           f"Unable to find package: {pkg}")
 
       elif pkg and repo:
-        # path = os.path.join(cfg.CFG_DIR, 'repos', f'{repo}.repo')
         try:
           subprocess.run(['dnf', '--setopt=reposdir=/tmp/fedorafig_repos', \
             f'--enablerepo={repo}', 'info', pkg], check=True)
         except subprocess.CalledProcessError:
-          raise CheckException(\
+          raise CheckException(
             f"Unable to get package from repo: {pkg} from {repo}")
 
 
-  def __calc_checksum(self):
-    '''
-    EXAMPLE FROM PREV ATTEMPT
-
+  @staticmethod
+  def calc_checksum(cfg_file):
     hasher = hashlib.sha256()
-    for root, _, files in os.walk(self.cfg_path):
-      for file in sorted(files):
-        path = os.path.join(root, file)
-        with open(path, 'rb') as fh:
-          while chunk := fh.read(8192):
-            hasher.update(chunk)
+
+    dpaths = [
+      os.path.join(cfg.CFG_DIR, 'repos'),
+      os.path.join(cfg.CFG_DIR, 'configs'),
+      os.path.join(cfg.CFG_DIR, 'scripts')
+    ]
+
+    for dpath in dpaths:
+      for root, _, files in os.walk(dpath):
+        for file in sorted(files):
+          path = os.path.join(root, file)
+          with open(path, 'rb') as fh:
+            while chunk := fh.read(8192):
+              hasher.update(chunk)
+
+    fpath = os.path.join(cfg.CFG_DIR, cfg_file)
+    with open(fpath, 'rb') as fh:
+      while chunk := fh.read(8192):
+        hasher.update(chunk)
 
     return hasher.hexdigest()
-    '''
+
+
+  def __save_checksum(self):
+    hash_name = self.args['CFG_FILE']
+    hash_name = hash_name[:hash_name.index('.')]
+    hash_fpath = os.path.join(cfg.getpath('~/.local/state/fedorafig'),
+      f'{hash_name}.sha256')
+
+    with open(hash_fpath, 'w') as fh:
+      fh.write(self.checksum)
