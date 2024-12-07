@@ -90,16 +90,9 @@ class Check():
         elif subkey == 'cfgpath':
           found_cfgpath = True
           cfgpath = cfg.getpath(os.path.join(cfg.CFG_DIR, 'configs', subentry))
-          
-          if subentry.endswith('/'):
-            if not (os.path.exists(cfgpath) and os.path.isdir(cfgpath)):
-              raise CheckException(
-                f"cfgpath does not exists or is not a directory: {cfgpath}")
-
-          else:
-            if not (os.path.exists(cfgpath) and os.path.isfile(cfgpath)):
-              raise CheckException(
-                f"cfgpath does not exists or is not a file: {cfgpath}")
+          if not os.path.exists(cfgpath):
+            raise CheckException(
+              f"cfgpath does not exists or is not a file: {cfgpath}")
 
         elif subkey == 'repo':
           repo = subentry

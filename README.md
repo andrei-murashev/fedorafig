@@ -36,8 +36,10 @@ Ensure `$CFG_DIR`, typically `~/.config/fedorafig/` looks like this:
 **Copy files**
 ```json
 "entry-can-have-any-name": {
-  "syspath": "cfgs/intended/path"   # Usually a directory in ~/.config/ related to the package
-  "cfgpath": "cfgs/in/cfg/dir/"     # Usualy ~/.config/fedorafig/configs/
+  "syspath": "cfgs/intended/dir/path/"
+  "_COMMENT": "Usually a directory in ~/.config/ related to the package"
+  "cfgpath": "cfgs/in/cfg/dir/or/file"
+  "_COMMENT": "Usualy ~/.config/fedorafig/configs/"
 }
 ```
 Copies files from `cfgpath` (`configs/`) to `syspath`.
@@ -50,7 +52,7 @@ Copies files from `cfgpath` (`configs/`) to `syspath`.
 ```
 Installs `pkg`.
 
-**Add Repository**
+**Activate repository**
 ```json
 "just-repo-entry": {
   "repo": "my-repo"
@@ -58,7 +60,7 @@ Installs `pkg`.
 ```
 Adds a `.repo` file from `repos/`.
 
-**Execute Script**
+**Execute a script (happens last of all subentries)**
 ```json
 "hello": {
   "script": "hello.sh"
@@ -66,7 +68,7 @@ Adds a `.repo` file from `repos/`.
 ```
 Executes a script from `$CFG_DIR/scripts/`.
 
-**Install Configured Package**
+**Install and configured the package**
 ```json
 "neofetch": {
   "syspath": "~/.config/neofetch",
@@ -76,7 +78,7 @@ Executes a script from `$CFG_DIR/scripts/`.
 ```
 Copies files and installs `pkg`, which is in this case `neofetch`.
 
-**Package from Specific Repository**
+**Install package from specific repository**
 ```json
 "telegram": {
   "pkg": "telegram",
@@ -85,13 +87,16 @@ Copies files and installs `pkg`, which is in this case `neofetch`.
 ```
 Installs `pkg` from `repo`.
 
-**Use All Repositories**
+**Activate all epositories**
 ```json
 "all-repos": {
   "repo": "all"
 }
 ```
 Actvates all repositories specified in `.repo` files in `$CFG_DIR/repos/`.
+
+**Comments**
+All values with the key `"_COMMENT"` are ignored.
 
 ### Workflow
 Follow these steps to maintain a functional setup.
