@@ -23,6 +23,7 @@ class Check():
     self.checksum = ''
 
     if not self.args['keep_checksums']: self.__delete_checksums()
+    # TODO: Consider whether this option is redundant ^.
     if not self.args['only_checksum']: self.__check_syntax()
 
     if not self.args['no_checksum']: 
