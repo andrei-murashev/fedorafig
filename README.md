@@ -42,7 +42,7 @@ Ensure `$CFG_DIR`, typically `~/.config/fedorafig/` looks like this:
   "_COMMENT": "Usualy ~/.config/fedorafig/configs/"
 }
 ```
-Copies files from `cfgpath` (`configs/`) to `syspath`.
+Copies files from `cfgpath` (path relative to `configs/`) to `syspath` (evaluated absolute path).
 
 **Install a package**
 ```json
