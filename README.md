@@ -7,7 +7,7 @@ Have you ever had to go through the tedious task of writing your own configurati
 In a directory where the path `fedorafig` does not yet exist, execute the following commands
 ```bash
 git clone https://github.com/andrei-murashev/fedorafig
-cd fedorafig && chmod u+x && ./install.sh
+cd fedorafig && chmod u+x install.sh && ./install.sh
 cd .. && rm -rf fedorafig
 ```
 
