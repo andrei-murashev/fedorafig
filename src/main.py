@@ -10,6 +10,7 @@ import fileinput
 # Local packages
 import cfg
 from check import Check, CheckException
+from run import Run, RunException
 
 
 class MyArgumentParser(argparse.ArgumentParser):
@@ -166,6 +167,40 @@ def main():
   the mutual exclusion method must be called again.
   """
 
+  parser_run = subparsers.add_parser(
+    'run'
+  )
+
+  parser_run.set_defaults(func=run)
+
+  parser_run.add_argument(
+    '-f',
+    '--files-include',
+    action='store_true',
+    default=False
+  )
+
+  parser_run.add_argument(
+    '-p',
+    '--pkgs-include',
+    action='store_true',
+    default=False
+  )
+
+  parser_run.add_argument(
+    '-r',
+    '--repos-include',
+    action='store_true',
+    default=False
+  )
+
+  parser_run.add_argument(
+    '-s',
+    '--scripts-include',
+    action='store_true',
+    default=False
+  )
+
   args = parser.parse_args()
 
   no_option = True
@@ -205,6 +240,15 @@ def check(args):
     Check(args)
   except CheckException as e:
     MyArgumentParser.custom_error('fedorafig check', e)
+  except Exception as e:
+    raise Exception(e)
+
+
+def run(args):
+  try:
+    Run(args)
+  except RunException as e:
+    MyArgumentParser.custom_error('fedorafig run', e)
   except Exception as e:
     raise Exception(e)
 

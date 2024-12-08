@@ -12,7 +12,7 @@ import errors
 
 class CheckException(Exception):
   """Exception that lets `argparse` know that it should exit with an error,
-  instead of `python3`, and no traceback will be shown."""
+  instead of `python3`, and traceback will be shown."""
   pass
 
 
@@ -84,8 +84,11 @@ class Check():
         if subkey == 'syspath':
           found_syspath = True
           syspath = cfg.getpath(subentry)
-          if not (os.path.exists(syspath) and os.path.isdir(syspath)):
+          if not os.path.exists(syspath):
             os.makedirs(syspath)
+          else:
+            raise CheckException(
+              f"syspath could not be created: {syspath}")
 
         elif subkey == 'cfgpath':
           found_cfgpath = True
@@ -122,6 +125,7 @@ class Check():
       subprocess.run(['rm', '-rf', tmp_repos_dir], check=True)
     os.mkdir(tmp_repos_dir)
 
+    # TODO: Maybe using `/tmp/fedorafig_repos` is redundant?
     for repo, pkg in repos_n_pkgs:
       if repo == 'all':
         repo_paths = os.path.join(cfg.CFG_DIR, 'repos/*')
