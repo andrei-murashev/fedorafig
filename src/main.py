@@ -9,8 +9,9 @@ import fileinput
 
 # Local packages
 import cfg
-from check import Check, CheckException
-from run import Run, RunException
+import errors
+from check import Check
+from run import Run
 
 
 class MyArgumentParser(argparse.ArgumentParser):
@@ -174,6 +175,11 @@ def main():
   parser_run.set_defaults(func=run)
 
   parser_run.add_argument(
+    'CFG_FILE',
+    help=f'System configuration JSON file in {cfg.CFG_DIR}'
+  )
+
+  parser_run.add_argument(
     '-f',
     '--files-include',
     action='store_true',
@@ -238,7 +244,7 @@ def set_cfg_dir(arg):
 def check(args):
   try:
     Check(args)
-  except CheckException as e:
+  except errors.CheckException as e:
     MyArgumentParser.custom_error('fedorafig check', e)
   except Exception as e:
     raise Exception(e)
@@ -247,7 +253,7 @@ def check(args):
 def run(args):
   try:
     Run(args)
-  except RunException as e:
+  except errors.RunException as e:
     MyArgumentParser.custom_error('fedorafig run', e)
   except Exception as e:
     raise Exception(e)

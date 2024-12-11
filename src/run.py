@@ -1,25 +1,37 @@
 # System packages
+import os
 import json
 import glob
 import subprocess
 
-
-class RunException(Exception):
-  """Exception that lets `argparse` know that it should exit with an error,
-  instead of `python3`, and traceback will be shown."""
-  pass
-
+# Local packages
+import cfg
+from check import Check
 
 
 class Run():
   def __init__(self, arg_list):
     self.args = vars(arg_list)
     self.data = None
-    with open(os.path.join(cfg.CFG_DIR, self.args['CFG_FILE'], 'r')) as fh:
+    with open(os.path.join(cfg.CFG_DIR, self.args['CFG_FILE']), 'r') as fh:
       self.data = json.load(fh)
 
-    # TODO: Implement checksum comparison.
+    # Check checksum
+    checksum = Check.calc_checksum(self.args['CFG_FILE'])
+    checksum_old = ''
+    checksum_path = os.path.join(cfg.getpath('~/.local/state/fedorafig/'),
+      f'{self.args['CFG_FILE']}.sha256')
+
+    if os.path.exists(checksum_path):
+      with open(cfg.getpath(checksum_path), 'r') as fh:
+        checksum_old = fh.readline().strip()
+    else:
+      subprocess.run(['fedorafig', 'check', self.args['CFG_FILE']], check=True)
+
+    if checksum != checksum_old:
+      subprocess.run(['fedorafig', 'check', self.args['CFG_FILE']], check=True)
     
+    # Parse flags
     if not self.args:
       self.__all_do()
 
@@ -37,12 +49,14 @@ class Run():
 
 
   def __repos_do(self):
+    print('repos_do')
     for key, entry in self.data.items():
       if key == '__COMMENT':
         continue
 
       repos = []
-      if subkey, subentry in entry.items():
+      print(entry, type(entry))
+      for subkey, subentry in entry.items():
         if subkey == 'repo':
           repos.append(subentry)
 
@@ -69,6 +83,7 @@ class Run():
 
 
   def __files_do(self):
+    print('files_do')
     for key, entry in self.data.items():
       if key == '_COMMENT':
         continue
@@ -77,11 +92,14 @@ class Run():
       cfgpath = os.path.join(cfg.CFG_DIR, 'configs')
       for subkey, subentry in entry.items():
         if subkey == 'syspath':
-          syspath = subentry
+          syspath = cfg.getpath(subentry)
         elif subkey == 'cfgpath':
           cfgpath = os.path.join(cfgpath, subentry)
 
-      subprocess.run(['cp', cfgpath, syspath], check=True)
+      if not os.path.exists(cfgpath):
+        raise RunException(f"File not found: {cfgpath}")
+
+      subprocess.run(['cp', '-rf', cfgpath, syspath], check=True)
 
   
   def __scripts_do(self):
