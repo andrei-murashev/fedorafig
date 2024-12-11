@@ -1,7 +1,7 @@
 {
   "copy files only": {
     "syspath": "~",
-    "cfgpath": "some-files/",
+    "cfgpath": "some-files",
     "_COMMENT": "if the cfgpath ends in `/`, that means its a directory"
   },
 
@@ -22,7 +22,7 @@
 
   "configured pkg": {
     "syspath": "~/.config/neofetch",
-    "cfgpath": "neofetch/",
+    "cfgpath": "neofetch",
     "pkg": "neofetch"
   },
 

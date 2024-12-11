@@ -34,16 +34,12 @@ class Run():
     # Parse flags
     if not self.args:
       self.__all_do()
-
     if self.args['repos_include']:
       self.__repos_do()
-
     if self.args['pkgs_include']:
       self.__pkgs_do()
-
     if self.args['files_include']:
       self.__files_do()
-
     if self.args['scripts_include']:
       self.__scripts_do()
 
@@ -89,17 +85,23 @@ class Run():
         continue
 
       syspath = ''
-      cfgpath = os.path.join(cfg.CFG_DIR, 'configs')
+      cfgpath = ''
       for subkey, subentry in entry.items():
         if subkey == 'syspath':
           syspath = cfg.getpath(subentry)
         elif subkey == 'cfgpath':
+          cfgpath = os.path.join(cfg.CFG_DIR, 'configs')
           cfgpath = os.path.join(cfgpath, subentry)
+          if os.path.isdir(cfgpath):
+            cfgpath = os.path.join(cfgpath, '.')
 
-      if not os.path.exists(cfgpath):
+      if not cfgpath:
+        continue
+      elif not os.path.exists(cfgpath):
         raise RunException(f"File not found: {cfgpath}")
 
-      subprocess.run(['cp', '-rf', cfgpath, syspath], check=True)
+      print("SYSPATH:", syspath, "CFGPATH:", cfgpath)
+      subprocess.run(['cp', '-rf', f'{cfgpath}', syspath], check=True)
 
   
   def __scripts_do(self):
