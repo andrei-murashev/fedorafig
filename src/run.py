@@ -16,6 +16,7 @@ class Run():
     with open(os.path.join(cfg.CFG_DIR, self.args['CFG_FILE']), 'r') as fh:
       self.data = json.load(fh)
 
+    # TODO: Ask for sudo activation at the very start and renew it when needed.
     # Check checksum
     checksum = Check.calc_checksum(self.args['CFG_FILE'])
     checksum_old = ''
@@ -46,26 +47,33 @@ class Run():
 
   def __repos_do(self):
     print('repos_do')
+    repos = []
     for key, entry in self.data.items():
-      if key == '__COMMENT':
+      if key == '_COMMENT':
         continue
 
-      repos = []
-      print(entry, type(entry))
+      found_repo = False
+      found_pkg = False
+      cur_subentry = ''
       for subkey, subentry in entry.items():
-        if subkey == 'repo':
-          repos.append(subentry)
+        if subkey == 'repo' and subentry:
+          found_repo = True
+          cur_subentry = subentry
+        if subkey == 'pkg':
+          found_pkg = True
+      
+      if not found_pkg and found_repo:
+        repos.append(cur_subentry)
+      
+    for repo in repos:
+      if repo == 'all':
+        path = os.path.join(cfg.CFG_DIR, 'repos', '.')
+        subprocess.run(['sudo', 'cp', '-rf', path, '/etc/yum.repos.d/'], 
+          check=True)
+        break
 
-      for repo in repos:
-        if repo == 'all':
-          repo_paths = os.path.join(cfg.CFG_DIR, 'repos/*')
-          for path in glob.glob(repo_paths):
-            if os.path.isfile(path):
-              subprocess.run(['cp', path, '/tmp/fedorafig_repos'], check=True)
-          break
-
-        path = os.path.join(cfg.CFG_DIR, 'repos', f'{repo}.repo')
-        subprocess.run(['cp', path, '/etc/yum.repos.d/'], check=True)
+      path = os.path.join(cfg.CFG_DIR, 'repos', f'{repo}.repo')
+      subprocess.run(['sudo', 'cp', '-f', path, '/etc/yum.repos.d/'], check=True)
 
     try:
       subprocess.run(['dnf', 'repolist'], check=True,
