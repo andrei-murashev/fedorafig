@@ -87,7 +87,7 @@ Copies files and installs `pkg`, which is in this case `neofetch`.
 ```
 Installs `pkg` from `repo`.
 
-**Activate all epositories**
+**Activate all repositories**
 ```json
 "all-repos": {
   "repo": "all"
@@ -95,7 +95,7 @@ Installs `pkg` from `repo`.
 ```
 Actvates all repositories specified in `.repo` files in `$CFG_DIR/repos/`.
 
-**Comments**
+**Comments**\
 All values with the key `"_COMMENT"` are ignored.
 
 ### Workflow
