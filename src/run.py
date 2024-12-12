@@ -34,7 +34,10 @@ class Run():
     
     # Parse flags
     if not self.args:
-      self.__all_do()
+      self.__repos_do()
+      self.__pkgs_do()
+      self.__files_do()
+      self.__scripts_do()
     if self.args['repos_include']:
       self.__repos_do()
     if self.args['pkgs_include']:
@@ -133,4 +136,20 @@ class Run():
 
   
   def __scripts_do(self):
-    pass
+    print('scripts_do')
+    scripts = []
+    for key, entry in self.data.items():
+      if key == '_COMMENT':
+        continue
+
+      script = ''
+      for subkey, subentry in entry.items():
+        if subkey == 'script':
+          path = os.path.join(cfg.CFG_DIR, 'scripts', subentry)
+          scripts.append(path)
+      
+    print(scripts)
+    if scripts:
+      for script in scripts:
+        subprocess.run(['sudo', 'chmod', 'u+x', script], check=True)
+        subprocess.run(['sudo', script], check=True)

@@ -15,3 +15,11 @@ STATUS: Resolved. Not applied.
     repo file to `/tmp/fedorafig/` when `all` repos are specified, because
     only then can you specify that the `reposdir` should be `repos`. But this requires extra code, but in this code extra code is better because it
     results in less disk operations, resulting in a faster program.
+
+STATUS: Resolved. Not applied.
+--- Currently, you can only add one of each subkey to each entry. There should
+    be an option to specify multiple packages, syspaths, and scripts. Multiple
+    packages because you might want to group them if you are installing all of
+    them for one particular purpose. Multiple syspaths to copy the configs
+    into multiple directories if needed. Multiple scripts, for the same reason
+    as multiple packages per entry.
