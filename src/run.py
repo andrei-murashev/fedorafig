@@ -2,6 +2,7 @@
 import os
 import json
 import glob
+import threading
 import subprocess
 
 # Local packages
@@ -13,10 +14,17 @@ class Run():
   def __init__(self, arg_list):
     self.args = vars(arg_list)
     self.data = None
-    with open(os.path.join(cfg.CFG_DIR, self.args['CFG_FILE']), 'r') as fh:
+    cfg_path = os.path.join(cfg.CFG_DIR, self.args['CFG_FILE'])
+    if not (os.path.exists(cfg_path) and os.path.isfile(cfg_path)):
+      raise RunException(f"Path does not exist or is not a file: {cfg_path}")
+    with open(cfg_path, 'r') as fh:
       self.data = json.load(fh)
 
-    # TODO: Ask for sudo activation at the very start and renew it when needed.
+    # Asks for sudo activation at the very start and revalidates it every 5min
+    subprocess.run(['sudo', '-v'], check=True)
+    sudo_refresh = threading.Thread(target=cfg.sudo_refresh, daemon=True)
+    sudo_refresh.start()
+    
     # Check checksum
     checksum = Check.calc_checksum(self.args['CFG_FILE'])
     checksum_old = ''
@@ -33,7 +41,11 @@ class Run():
       subprocess.run(['fedorafig', 'check', self.args['CFG_FILE']], check=True)
     
     # Parse flags
-    if not self.args:
+    flags = [self.args['repos_include'],
+             self.args['pkgs_include'],
+             self.args['files_include'],
+             self.args['scripts_include']]
+    if True not in flags:
       self.__repos_do()
       self.__pkgs_do()
       self.__files_do()
@@ -148,7 +160,6 @@ class Run():
           path = os.path.join(cfg.CFG_DIR, 'scripts', subentry)
           scripts.append(path)
       
-    print(scripts)
     if scripts:
       for script in scripts:
         subprocess.run(['sudo', 'chmod', 'u+x', script], check=True)
