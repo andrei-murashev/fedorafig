@@ -83,7 +83,28 @@ class Run():
 
 
   def __pkgs_do(self):
-    pass
+    print('pkgs_do')
+    done_repos = False
+    for key, entry in self.data.items():
+      if key == '_COMMENT':
+        continue
+
+      repo = ''
+      pkg = ''
+      for subkey, subentry in entry.items():
+        if subkey == 'pkg' and subentry:
+          pkg = subentry
+        if subkey == 'repo':
+          repo = subentry
+
+      if pkg and not repo:
+        if not done_repos:
+          done_repos = True
+          self.__repos_do()
+        subprocess.run(['sudo', 'dnf', 'install', pkg, '-y'], check=True)
+      elif pkg and repo:
+        subprocess.run(['sudo', 'dnf', 'install', f'--enablerepo={repo}',
+          f'--setopt=reposdir={cfg.CFG_DIR}/repos/', pkg, '-y'], check=True)
 
 
   def __files_do(self):
@@ -108,7 +129,6 @@ class Run():
       elif not os.path.exists(cfgpath):
         raise RunException(f"File not found: {cfgpath}")
 
-      print("SYSPATH:", syspath, "CFGPATH:", cfgpath)
       subprocess.run(['cp', '-rf', f'{cfgpath}', syspath], check=True)
 
   
