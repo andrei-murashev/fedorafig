@@ -14,7 +14,8 @@ STATUS: Resolved. Not applied.
     possibly be used will be used. However, IT IS redundant to move all the
     repo file to `/tmp/fedorafig/` when `all` repos are specified, because
     only then can you specify that the `reposdir` should be `repos`. But this requires extra code, but in this code extra code is better because it
-    results in less disk operations, resulting in a faster program.
+    results in less disk operations, resulting in a faster program. Many repos
+    too actually, where extra repos can be used as fallback repos.
 
 STATUS: Resolved. Not applied.
 --- Currently, you can only add one of each subkey to each entry. There should
@@ -23,3 +24,6 @@ STATUS: Resolved. Not applied.
     them for one particular purpose. Multiple syspaths to copy the configs
     into multiple directories if needed. Multiple scripts, for the same reason
     as multiple packages per entry.
+
+STATUS: Unresolved.
+--- Code appears to be poorly written. I do not like its appearance and patterns.
