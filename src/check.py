@@ -7,14 +7,7 @@ import subprocess
 
 # Local packages
 import cfg
-import errors
-
-
-class CheckException(Exception):
-  """Exception that lets `argparse` know that it should exit with an error,
-  instead of `python3`, and no traceback will be shown."""
-  pass
-
+from errors import CheckException
 
 
 class Check():
@@ -39,9 +32,8 @@ class Check():
 
     try:
       os.makedirs(state_dir, exist_ok=True)
-    except FileExistsError:
-      os.remove(state_dir)
-      exit(1)
+    except Exception:
+      raise CheckException(f"Cannot make state directory: {state_dir}")
 
     pattern = '*.sha256'
     matches = glob.glob(f'{state_dir}/{pattern}')
@@ -49,11 +41,11 @@ class Check():
     for match in matches:
       try: os.remove(match)
       except PermissionError:
-        errors.exit1(f"No permission to remove file: {match}")
+        raise CheckException(f"No permission to remove file: {match}")
       except IsADirectoryError:
-        errors.exit1(f"Cannot remove a directory: {match}")
+        raise CheckException(f"Cannot remove a directory: {match}")
       except OSError:
-        errors.exit1(f"OS error prevents from deletion: {match}")
+        raise CheckException(f"OS error prevents from deletion: {match}")
 
 
   def __check_syntax(self):
@@ -81,11 +73,16 @@ class Check():
       repo = ''
 
       for subkey, subentry in entry.items():
-        if subkey == 'syspath':
+        if subkey == '_COMMENT':
+          continue
+
+        elif subkey == 'syspath':
           found_syspath = True
           syspath = cfg.getpath(subentry)
-          if not (os.path.exists(syspath) and os.path.isdir(syspath)):
-            os.makedirs(syspath)
+          if not os.path.exists(syspath):
+            try: os.makedirs(syspath)
+            except Exception: raise CheckException(
+              f"syspath could not be created: {syspath}")
 
         elif subkey == 'cfgpath':
           found_cfgpath = True
@@ -106,9 +103,6 @@ class Check():
           if not (os.path.exists(script_path) and os.path.isfile(script_path)):
             raise CheckException(f"Script not found: {script_path}")
 
-        elif subkey == '_COMMENT':
-          pass
-
         else:
           raise CheckException(f"Subkey not recogised: {subkey}")
 
@@ -122,6 +116,7 @@ class Check():
       subprocess.run(['rm', '-rf', tmp_repos_dir], check=True)
     os.mkdir(tmp_repos_dir)
 
+    # TODO: Maybe using `/tmp/fedorafig_repos` is redundant?
     for repo, pkg in repos_n_pkgs:
       if repo == 'all':
         repo_paths = os.path.join(cfg.CFG_DIR, 'repos/*')
@@ -186,10 +181,8 @@ class Check():
 
 
   def __save_checksum(self):
-    hash_name = self.args['CFG_FILE']
-    hash_name = hash_name[:hash_name.index('.')]
-    hash_fpath = os.path.join(cfg.getpath('~/.local/state/fedorafig'),
-      f'{hash_name}.sha256')
+    name = self.args['CFG_FILE'] + '.sha256'
+    hash_fpath = os.path.join(cfg.getpath('~/.local/state/fedorafig'), name)
 
     with open(hash_fpath, 'w') as fh:
       fh.write(self.checksum)

@@ -1,0 +1,29 @@
+STATUS: Unresolved.
+--- Instead of making the user choose the repo by name, they should choose by 
+    repo file name, as the real repo name is specified in the repo file.
+    The reason specifying the repo name works right now is because I have, in
+    my configs, assumed that the repo name is what is the name of the repo
+    file without the `.repo`. But I am wrong. That is only the base file
+    name, not the repo name. Getting the repo name would require iterating
+    over the repo file until the name is found.
+
+STATUS: Resolved. Not applied.
+--- Moving repos into `/tmp/fedorafig/` is NOT redundant because sometimes you
+    want to activate all part of the repositories, but if you select the
+    `reposdir` to be the `repos` directory, then all repos that could
+    possibly be used will be used. However, IT IS redundant to move all the
+    repo file to `/tmp/fedorafig/` when `all` repos are specified, because
+    only then can you specify that the `reposdir` should be `repos`. But this requires extra code, but in this code extra code is better because it
+    results in less disk operations, resulting in a faster program. Many repos
+    too actually, where extra repos can be used as fallback repos.
+
+STATUS: Resolved. Not applied.
+--- Currently, you can only add one of each subkey to each entry. There should
+    be an option to specify multiple packages, syspaths, and scripts. Multiple
+    packages because you might want to group them if you are installing all of
+    them for one particular purpose. Multiple syspaths to copy the configs
+    into multiple directories if needed. Multiple scripts, for the same reason
+    as multiple packages per entry.
+
+STATUS: Unresolved.
+--- Code appears to be poorly written. I do not like its appearance and patterns.
