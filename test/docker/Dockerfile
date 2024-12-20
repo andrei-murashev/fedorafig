@@ -30,5 +30,4 @@ RUN cd fedorafig && chmod u+x install.sh && ./install.sh
 RUN rm -rf fedorafig
 
 # Runs tests.
-# CMD ["/home/user/bin/fedorafig-src/test.sh"]
 CMD ["bash"]

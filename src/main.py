@@ -9,6 +9,9 @@ import cfg
 import help
 import errors
 
+# TODO: Check setting of configuration directory and __repos_do(),
+# if it sets the repos_done flag
+
 
 def main():
   """============================ MAIN PARSER ============================="""
@@ -113,6 +116,28 @@ def main():
     help="" # TODO
   )
 
+  """========================== UNINSTALL PARSER =========================="""
+  parser_uninstall = subparsers.add_parser(
+    'uninstall',
+    usage='', # TODO
+    help="" # TODO
+  )
+  parser_uninstall.set_defaults(func=uninstall)
+
+  parser_uninstall.add_argument(
+    '-s', '--with-state',
+    action='store_true',
+    default=False,
+    help="" # TODO
+  )
+
+  parser_uninstall.add_argument(
+    '-c', '--with-config',
+    action='store_true',
+    default=False,
+    help="" # TODO
+  )
+
   """============================= PARSE OPTS ============================="""
   try:
     args = vars(parser_main.parse_args())
@@ -142,6 +167,24 @@ def run(args):
   try: Run(args)
   except errors.FedorafigException as e: raise
   except (Exception, SystemExit) as e: errors.log(e); print(help.REPORT_ISSUE)
+
+
+def uninstall(args):
+  from subprocess import run
+
+  paths = [cfg.PROG_DIR, os.path.join(cfg.EXEC_DIR, 'fedorafig')]
+  if args['with_state']:
+    if os.path.isdir(cfg.STATE_DIR): paths.append(cfg.STATE_DIR)
+  if args['with_config']:
+    if os.path.isdir(cfg.CFG_DIR): paths.append(cfg.CFG_DIR)
+
+  print("Removing the following paths:")
+  for path in paths:
+    print(' ', path)
+
+  ans = input("Are you sure you want to proceed [y/N]: ")
+  if ans == 'Y' or ans == 'y':
+    for path in paths: run(['rm', '-rf', path], check=True)
 
 
 if __name__ == '__main__':

@@ -78,6 +78,8 @@ class Run():
         elif repo and not pkg: repos_cmd += [repo]
       subprocess.run(['sudo', 'dnf', 'config-manager', *repos_cmd], check=True)
 
+    self.repos_done = True
+
 
   def __pkgs_do(self):
     if not self.repos_done: self.__repos_do()

@@ -1,5 +1,6 @@
 # System imports
 import os
+import sys
 import time
 import subprocess
 
@@ -15,8 +16,17 @@ def resolve_path(path):
 
 # Path constants
 CFG_DIR = resolve_path('~/.config/fedorafig')
-LIB_DIR = resolve_path('~/.local/lib/fedorafig')
+PROG_DIR = resolve_path('~/.local/lib/fedorafig')
+EXEC_DIR = resolve_path('~/.local/bin/')
 STATE_DIR = resolve_path('~/.local/state/fedorafig')
+
+if sys.argv[0] == 'src/cfg.py':
+  os.environ['CFG_DIR'] = CFG_DIR
+  os.environ['PROG_DIR'] = PROG_DIR
+  os.environ['EXEC_DIR'] = EXEC_DIR
+  os.environ['STATE_DIR'] = STATE_DIR
+  for key, val in os.environ.items():
+    print(f"export {key}={val}")
 
 CFGS_DIR = os.path.join(CFG_DIR, 'configs')
 REPOS_DIR = os.path.join(CFG_DIR, 'repos')
@@ -57,11 +67,8 @@ def get_cfg_dir(dpath):
   with open(STATE_FILE, 'r') as fh: CFG_DIR = fh.readline().strip()
 
 
-get_cfg_dir(CFG_DIR)
-DIRS = [CFG_DIR, LIB_DIR, STATE_DIR]
-for dir in DIRS: makedirs_if_need(dir)
-
 # Constants for later use
+get_cfg_dir(CFG_DIR)
 REPOS_N_PKGS = []
 SYS_N_CFG_DIRS = []
 SCRIPT_FILES = []
