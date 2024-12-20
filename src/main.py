@@ -23,7 +23,7 @@ def main():
   )
 
   parser_main.add_argument(
-    '-f', '--set-cfg-dir',
+    '-c', '--set-cfg-dir',
     type=cfg.set_cfg_dir,
     # default='~/.config/fedorafig',
     help="" # TODO

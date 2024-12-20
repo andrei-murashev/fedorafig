@@ -187,6 +187,9 @@ There are also options to apply only parts of your configuration, none of which 
 
 Using these flags doesn't "include" anything extra. It simply means that you start with nothing included in your application of the configuration when you start using the flags, and then the flags include specifically what you want.
 
+### Uninstalling
+Simply run: `fedorafig uninstall` \
+Optionally you can pass the flags `-c` or `--with-config` to also remove the current configuration directory of the utility, and the flags `-s` `--with-state` to also remove the state directory.
 
 ## Coming features
 ### Support for multiple subentries
@@ -194,9 +197,6 @@ Using these flags doesn't "include" anything extra. It simply means that you sta
 + `pkgs` subentries: Multiple `pkgs` are installed. If even one repository is specified, the utility attempts to install all of them from it.
 + `syspath` and `cfgpath` subentries: All contents in the `cfgpath` subentries are copied to all `syspath` subentries.
 + `script` subentries: Just runs all the scripts specified in the entry in order.
-
-### Self-uninstall
-Uninstalls itself. You will also be able to specify to remove the configuration directory.
 
 ### Support for different shells
 You will be able to specify which scripts are run with what shell. You can make a `shell` subentry above some `script` subentries, and the following scripts will be executed with that shell, unless the shell is respecified, in which case the scripts succeeding the respecification are run with the respecified shell.
