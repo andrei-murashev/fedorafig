@@ -2,6 +2,7 @@ FROM fedora:40
 
 # Installing required packages.
 RUN dnf install -y \
+  dnf-plugins-core \
   python3 \
   ncurses \
   neovim \

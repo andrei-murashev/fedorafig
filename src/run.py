@@ -1,166 +1,104 @@
-# System packages
+# DEPENDENCY: dnf-plugins-core
+
+# System imports
 import os
 import json
-import glob
 import threading
 import subprocess
 
-# Local packages
+# Local imports
 import cfg
-from check import Check
-
+import errors
 
 class Run():
-  def __init__(self, arg_list):
-    self.args = vars(arg_list)
-    self.data = None
-    cfg_path = os.path.join(cfg.CFG_DIR, self.args['CFG_FILE'])
-    if not (os.path.exists(cfg_path) and os.path.isfile(cfg_path)):
-      raise RunException(f"Path does not exist or is not a file: {cfg_path}")
-    with open(cfg_path, 'r') as fh:
-      self.data = json.load(fh)
-
-    # Asks for sudo activation at the very start and revalidates it every 5min
+  def __init__(self, args):
     subprocess.run(['sudo', '-v'], check=True)
     sudo_refresh = threading.Thread(target=cfg.sudo_refresh, daemon=True)
     sudo_refresh.start()
-    
-    # Check checksum
-    checksum = Check.calc_checksum(self.args['CFG_FILE'])
-    checksum_old = ''
-    checksum_path = os.path.join(cfg.getpath('~/.local/state/fedorafig/'),
-      f'{self.args['CFG_FILE']}.sha256')
 
-    if os.path.exists(checksum_path):
-      with open(cfg.getpath(checksum_path), 'r') as fh:
-        checksum_old = fh.readline().strip()
-    else:
-      subprocess.run(['fedorafig', 'check', self.args['CFG_FILE']], check=True)
+    self.args = args
+    self.file = args['CFG_FILE']
+    self.repos_done = False
 
-    if checksum != checksum_old:
-      subprocess.run(['fedorafig', 'check', self.args['CFG_FILE']], check=True)
-    
+    with open(os.path.join(cfg.CFG_DIR, self.file), 'r') as fh:
+      self.data = json.load(fh)
+
+    from check import Check
+    self.checksum = Check.calc_checksum(self.file)
+
+    # Compare checksums
+    checksum_old = None
+    checksum_path = os.path.join(cfg.STATE_DIR, f'{self.file}.sha256')
+
+    if os.path.isfile(checksum_path):
+      with open(checksum_path, 'r') as fh: checksum_old = fh.readline().strip()
+
+    if not (os.path.isfile(checksum_path) and self.checksum == checksum_old):
+      subprocess.run(['fedorafig', 'check', self.file], check=True)
+
+    Check(args)
+
     # Parse flags
-    flags = [self.args['repos_include'],
-             self.args['pkgs_include'],
-             self.args['files_include'],
-             self.args['scripts_include']]
+    flags = [
+      self.args['repos_include'],
+      self.args['pkgs_include'],
+      self.args['files_include'],
+      self.args['scripts_include']
+    ]
+
     if True not in flags:
       self.__repos_do()
       self.__pkgs_do()
       self.__files_do()
       self.__scripts_do()
-    if self.args['repos_include']:
-      self.__repos_do()
-    if self.args['pkgs_include']:
-      self.__pkgs_do()
-    if self.args['files_include']:
-      self.__files_do()
-    if self.args['scripts_include']:
-      self.__scripts_do()
+    if self.args['repos_include']: self.__repos_do()
+    if self.args['pkgs_include']: self.__pkgs_do()
+    if self.args['files_include']: self.__files_do()
+    if self.args['scripts_include']: self.__scripts_do()
 
 
   def __repos_do(self):
-    print('repos_do')
-    repos = []
-    for key, entry in self.data.items():
-      if key == '_COMMENT':
-        continue
+    repo_files = os.path.join(cfg.REPOS_DIR, '.')
+    try: subprocess.run(['dnf', 'config-manager', '--version'], check=True)
+    except subprocess.CalledProcessError: raise errors.FedorafigException(
+      "'config-manager' not found or has an issue")
+    subprocess.run(
+      ['sudo', 'cp', '-rf', repo_files, '/etc/yum.repos.d/'], check=True)
 
-      found_repo = False
-      found_pkg = False
-      cur_subentry = ''
-      for subkey, subentry in entry.items():
-        if subkey == 'repo' and subentry:
-          found_repo = True
-          cur_subentry = subentry
-        if subkey == 'pkg':
-          found_pkg = True
-      
-      if not found_pkg and found_repo:
-        repos.append(cur_subentry)
-      
-    for repo in repos:
-      if repo == 'all':
-        path = os.path.join(cfg.CFG_DIR, 'repos', '.')
-        subprocess.run(['sudo', 'cp', '-rf', path, '/etc/yum.repos.d/'], 
-          check=True)
-        break
+    enable_all = False
+    for repo, pkg in cfg.REPOS_N_PKGS:
+      if repo == 'all' and not pkg: enable_all = True; break
+      elif repo and not pkg: subprocess.run([
+        'sudo', 'dnf', 'config-manager', '--set-enabled', repo], check=True)
 
-      path = os.path.join(cfg.CFG_DIR, 'repos', f'{repo}.repo')
-      subprocess.run(['sudo', 'cp', '-f', path, '/etc/yum.repos.d/'], check=True)
-
-    try:
-      subprocess.run(['dnf', 'repolist'], check=True,
-        stderr=subprocess.PIPE, text=True)
-    except subprocess.CalledProcessError as e:
-      raise CheckException(e.stderr.strip())
+    if enable_all:
+      repos_cmd = ['--set-enabled']
+      for repo, pkg in cfg.REPOS_N_PKGS:
+        if repo == 'all': continue
+        elif repo and not pkg: repos_cmd += [repo]
+      subprocess.run(['sudo', 'dnf', 'config-manager', *repos_cmd], check=True)
 
 
   def __pkgs_do(self):
-    print('pkgs_do')
-    done_repos = False
-    for key, entry in self.data.items():
-      if key == '_COMMENT':
-        continue
-
-      repo = ''
-      pkg = ''
-      for subkey, subentry in entry.items():
-        if subkey == 'pkg' and subentry:
-          pkg = subentry
-        if subkey == 'repo':
-          repo = subentry
-
-      if pkg and not repo:
-        if not done_repos:
-          done_repos = True
-          self.__repos_do()
-        subprocess.run(['sudo', 'dnf', 'install', pkg, '-y'], check=True)
-      elif pkg and repo:
-        subprocess.run(['sudo', 'dnf', 'install', f'--enablerepo={repo}',
-          f'--setopt=reposdir={cfg.CFG_DIR}/repos/', pkg, '-y'], check=True)
+    if not self.repos_done: self.__repos_do()
+    for repo, pkg in cfg.REPOS_N_PKGS:
+      if repo == 'all' and pkg: subprocess.run([
+        'sudo', 'dnf', 'install', '--enablerepo=*', pkg, '-y'], check=True)
+      elif repo and pkg: subprocess.run([
+        'sudo', 'dnf', 'install', f'--enablerepo={repo}', pkg, '-y'],
+        check=True)
+        # NOTE: This does not disable other repos.
+      elif pkg and not repo: subprocess.run([
+        'sudo', 'dnf', 'install', pkg, '-y'], check=True)
 
 
   def __files_do(self):
-    print('files_do')
-    for key, entry in self.data.items():
-      if key == '_COMMENT':
-        continue
+    for syspath, cfgpath in cfg.SYS_N_CFG_DIRS:
+      cfgpath_items = os.path.join(cfgpath, '.')
+      subprocess.run(['sudo', 'cp', '-rf', cfgpath_items, syspath], check=True)
 
-      syspath = ''
-      cfgpath = ''
-      for subkey, subentry in entry.items():
-        if subkey == 'syspath':
-          syspath = cfg.getpath(subentry)
-        elif subkey == 'cfgpath':
-          cfgpath = os.path.join(cfg.CFG_DIR, 'configs')
-          cfgpath = os.path.join(cfgpath, subentry)
-          if os.path.isdir(cfgpath):
-            cfgpath = os.path.join(cfgpath, '.')
 
-      if not cfgpath:
-        continue
-      elif not os.path.exists(cfgpath):
-        raise RunException(f"File not found: {cfgpath}")
-
-      subprocess.run(['cp', '-rf', f'{cfgpath}', syspath], check=True)
-
-  
   def __scripts_do(self):
-    print('scripts_do')
-    scripts = []
-    for key, entry in self.data.items():
-      if key == '_COMMENT':
-        continue
-
-      script = ''
-      for subkey, subentry in entry.items():
-        if subkey == 'script':
-          path = os.path.join(cfg.CFG_DIR, 'scripts', subentry)
-          scripts.append(path)
-      
-    if scripts:
-      for script in scripts:
-        subprocess.run(['sudo', 'chmod', 'u+x', script], check=True)
-        subprocess.run(['sudo', script], check=True)
+    for script in cfg.SCRIPT_FILES:
+      subprocess.run(['sudo', 'chmod', 'u+x', script], check=True)
+      subprocess.run(['sudo', script], check=True)
