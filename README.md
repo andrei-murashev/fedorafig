@@ -1,5 +1,5 @@
 # fedorafig v0.2.0-alpha
-<img alt="version static badge" src="https://img.shields.io/badge/version-0.1.0-blue" height=25> <img alt="unlicense license static badge" src="https://img.shields.io/badge/license-Unlicense-red" height="25"> <img alt="issues static badge" src="https://img.shields.io/github/issues/andrei-murashev/fedorafig?color=yellow" height="25"> <img alt="stars" src="https://img.shields.io/github/stars/andrei-murashev/fedorafig?color=white" height="25">
+<img alt="version static badge" src="https://img.shields.io/badge/version-0.2.0-blue" height=25> <img alt="unlicense license static badge" src="https://img.shields.io/badge/license-Unlicense-red" height="25"> <img alt="issues static badge" src="https://img.shields.io/github/issues/andrei-murashev/fedorafig?color=yellow" height="25"> <img alt="stars" src="https://img.shields.io/github/stars/andrei-murashev/fedorafig?color=white" height="25">
 
 Have you ever had to go through the tedious task of writing your own configuration scripts for you Fedora Linux system? I have, and I didn't like it, which is why I made this utility for myself and perhaps it can help you too. `fedorafig` is a one-stop shop configuration utility for Fedora Linux. All you have to do is specify the configuration paths and their destinations, specify the packages, optionally from a specific repository, and any post-installation scripts.
 
@@ -197,9 +197,6 @@ Optionally you can pass the flags `-c` or `--with-config` to also remove the cur
 + `pkgs` subentries: Multiple `pkgs` are installed. If even one repository is specified, the utility attempts to install all of them from it.
 + `syspath` and `cfgpath` subentries: All contents in the `cfgpath` subentries are copied to all `syspath` subentries.
 + `script` subentries: Just runs all the scripts specified in the entry in order.
-
-### Support for different shells
-You will be able to specify which scripts are run with what shell. You can make a `shell` subentry above some `script` subentries, and the following scripts will be executed with that shell, unless the shell is respecified, in which case the scripts succeeding the respecification are run with the respecified shell.
 
 ### Silent output
 No output is printed to `stdout` when the utility is running. Can be specified with `-q` or `--quiet`
