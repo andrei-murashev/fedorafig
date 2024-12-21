@@ -1,7 +1,7 @@
 # fedorafig v0.2.0-alpha
 <img alt="version static badge" src="https://img.shields.io/badge/version-0.2.0-blue" height=25> <img alt="unlicense license static badge" src="https://img.shields.io/badge/license-Unlicense-red" height="25"> <img alt="issues static badge" src="https://img.shields.io/github/issues/andrei-murashev/fedorafig?color=yellow" height="25"> <img alt="stars" src="https://img.shields.io/github/stars/andrei-murashev/fedorafig?color=white" height="25">
 
-Have you ever had to go through the tedious task of writing your own configuration scripts for you Fedora Linux system? I have, and I didn't like it, which is why I made this utility for myself and perhaps it can help you too. `fedorafig` is a one-stop shop configuration utility for Fedora Linux. All you have to do is specify the configuration paths and their destinations, specify the packages, optionally from a specific repository, and any post-installation scripts.
+Have you ever had to go through the tedious task of writing your own configuration scripts for your Fedora Linux system? I have, and I didn't like it, which is why I made this utility for myself and perhaps it can help you too. `fedorafig` is a one-stop shop configuration utility for Fedora Linux. All you have to do is specify the configuration paths and their destinations, specify the packages, optionally from a specific repository, and any post-installation scripts.
 
 ## Installation
 In a directory where the path `fedorafig` does not yet exist, execute the following commands

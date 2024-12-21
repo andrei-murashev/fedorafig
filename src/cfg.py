@@ -31,6 +31,7 @@ if sys.argv[0] == 'src/cfg.py':
 CFGS_DIR = os.path.join(CFG_DIR, 'configs')
 REPOS_DIR = os.path.join(CFG_DIR, 'repos')
 SCRIPTS_DIR = os.path.join(CFG_DIR, 'scripts')
+COMMON_DIR = os.path.join(CFG_DIR, 'common')
 STATE_FILE = os.path.join(STATE_DIR, 'config.txt')
 
 

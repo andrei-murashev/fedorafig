@@ -25,7 +25,21 @@ def main():
   parser_main.add_argument(
     '-c', '--set-cfg-dir',
     type=cfg.set_cfg_dir,
-    # default='~/.config/fedorafig',
+    action='store',
+    help="" # TODO
+  )
+
+  parser_main.add_argument(
+    '-q', '--quiet',
+    action='store_true',
+    default=False,
+    help="" # TODO
+  )
+
+  parser_main.add_argument(
+    '-v', '--verbose',
+    action='store_true',
+    default=False,
     help="" # TODO
   )
 
@@ -44,6 +58,8 @@ def main():
 
   parser_check.add_argument(
     'CFG_FILE',
+    action='store',
+    default=None,
     help="" # TODO
   )
 
@@ -85,6 +101,8 @@ def main():
 
   parser_run.add_argument(
     'CFG_FILE',
+    action='store',
+    default=None,
     help="" # TODO
   )
 
@@ -113,6 +131,21 @@ def main():
     '-s', '--scripts-include',
     action='store_true',
     default=False,
+    help="" # TODO
+  )
+
+  """============================= EXEC PARSER ============================"""
+  parser_exec = subparsers.add_parser(
+    'exec',
+    usage='', # TODO
+    help="" # TODO
+  )
+  parser_exec.set_defaults(func=exec)
+
+  parser_exec.add_argument(
+    'SCRIPT_NAME',
+    action='store',
+    default=None,
     help="" # TODO
   )
 
@@ -167,6 +200,18 @@ def run(args):
   try: Run(args)
   except errors.FedorafigException as e: raise
   except (Exception, SystemExit) as e: errors.log(e); print(help.REPORT_ISSUE)
+
+
+def exec(args):
+  name = args['SCRIPT_NAME']
+  path = os.path.join(cfg.COMMON_DIR, name)
+  if not os.path.isfile(path): raise errors.FedorafigException(
+    "script not found", path)
+  
+  from subprocess import run, CalledProcessError
+  run(['chmod', 'u+x', path], check=True)
+  try: run([path], check=True)
+  except CalledProcessError as e: print(e)
 
 
 def uninstall(args):
