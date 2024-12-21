@@ -39,7 +39,7 @@ def sudo_refresh():
   while True:
     try: subprocess.run(['sudo', '-v'], check=True)
     except subprocess.CalledSubprocessError as e:
-      raise errors.FedorafigException('', exc=e) # TODO
+      raise errors.FedorafigException('unable to validate sudo', exc=e) # TODO
     time.sleep(60)
 
 

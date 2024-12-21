@@ -12,7 +12,9 @@ import errors
 
 class Run():
   def __init__(self, args):
-    subprocess.run(['sudo', '-v'], check=True)
+    try: subprocess.run(['sudo', '-v'], check=True)
+    except subprocess.CalledProcessError as e: raise errors.FedorafigException(
+      "sudo timeout")
     sudo_refresh = threading.Thread(target=cfg.sudo_refresh, daemon=True)
     sudo_refresh.start()
 

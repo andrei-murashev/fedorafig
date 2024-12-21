@@ -9,9 +9,6 @@ import cfg
 import help
 import errors
 
-# TODO: Check setting of configuration directory and __repos_do(),
-# if it sets the repos_done flag
-
 
 def main():
   """============================ MAIN PARSER ============================="""

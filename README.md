@@ -258,10 +258,6 @@ with `-q` or `--quiet`
 Very detailed output is printed to `stdout` when the utility is running. Can be
 specified with `-v` or `--verbose`
 
-### Triggering scripts with OS events
-You may want to execute some scripts after a certain OS event occurs. This
-functionality will be added later to the `$CFG_FILE`.
-
 ### Switch to JSON5 configuration files
 Configuration files will be parsed from files of the JSON5 format, a more user-
 friendly version of JSON. This will mark the 1.0.0 release.

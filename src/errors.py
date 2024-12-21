@@ -15,6 +15,7 @@ class FedorafigException(Exception):
     if exc is None:
       super().__init__(msg);
     else:
+      print(msg)
       if isinstance(exc, SystemExit): traceback.print_exception(
         type(exc), exc, exc.__traceback__)
       else: raise exc
