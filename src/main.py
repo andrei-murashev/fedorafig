@@ -1,262 +1,232 @@
 #!/bin/env python3
 
-# TODO: Write tests for everything
-# System packages
+# System imports
 import os
 import argparse
-import textwrap
-import fileinput
 
-# Local packages
+# Local imports
 import cfg
+import help
 import errors
-from check import Check
-from run import Run
 
 
-class MyArgumentParser(argparse.ArgumentParser):
-  parser_map = {}
-  mutually_excluded_groups = {}
-
-  def __init__(self, prog=None, *args, **kwargs):
-    super().__init__(prog, *args, **kwargs)
-
-    if prog in self.__class__.parser_map.keys():
-      raise Exception(f'Parser already exists for: {prog}')
-    elif prog == None:
-      return
-
-    self.name = prog
-    self.__class__.parser_map[self.name] = self
-
-
-  def error(self, msg):
-    super().error(textwrap.dedent(f"""
-      {msg}
-      Try '{self.name} --help' for more information.
-    """).strip())
-    exit(2)
-
-
-  @staticmethod
-  def custom_error(name, msg):
-    print(textwrap.dedent(f"""
-      {name}: error: {msg}
-      Try '{name} --help' for more information.
-    """).strip())
-    exit(2)
-
-  
-  def mutually_exclude_groups(self, *argparse_groups):
-    grouped_flags = []
-    for group in argparse_groups:
-      flags = [action.dest for action in group._group_actions]
-      grouped_flags.append(flags)
-    self.__class__.mutually_excluded_groups[self.name] = grouped_flags
-  
-
-  def parse_args(self, *args, **kwargs):
-    # `self.name` is different here, as we are using the top-level parser
-    args = super().parse_args(*args, **kwargs)
-    supergroups = self.mutually_excluded_groups
-
-    for parser_name, groups in supergroups.items():
-      matches = []
-      for group in groups:
-        try: vals = [getattr(args, flag) for flag in group]
-        except AttributeError: return args
-        matches.append(self.__list_disjunction(vals))
-      
-      collision_found = self.__list_conjunction(matches)
-      if collision_found:
-        # TODO: format the error message to display the flags
-        msg = 'arguments from mutually exclusive groups were used:'
-        self.__class__.parser_map[parser_name].error(msg)
-    
-    return args
-
-
-  def __list_disjunction(self, xs):
-    ret = False
-    for x in xs:
-      ret = ret or x
-    
-    return ret
-
-
-  def __list_conjunction(self, xs):
-    ret = True
-    for x in xs:
-      ret = ret and x
-    
-    return ret
-
-
-
-# TODO: Add examples, write help prompts
 def main():
-  parser = MyArgumentParser(
+  """============================ MAIN PARSER ============================="""
+  parser_main = argparse.ArgumentParser(
     formatter_class=argparse.RawTextHelpFormatter,
     prog='fedorafig',
-    description=textwrap.dedent("""
-      CLI utility for Fedora Linux to configure your system from a JSON file.
-    """.strip()),
-    epilog=textwrap.dedent("""\
-    Find this project and its documentation on GitHub at:
-    https://github.com/amura-dev/fedorafig
-    """.strip())
+    description="", # TODO
+    epilog="" # TODO
   )
 
-  parser.add_argument(
-    '-f', '--new-cfg-dir',
-    type=set_cfg_dir,
-    help='set the config dir to something, and it will be this until set again'
+  parser_main.add_argument(
+    '-c', '--set-cfg-dir',
+    type=cfg.set_cfg_dir,
+    action='store',
+    help="" # TODO
   )
 
-  subparsers = parser.add_subparsers(
-    title='commands',
-    description="Main commands of the utility."
+  parser_main.add_argument(
+    '-q', '--quiet',
+    action='store_true',
+    default=False,
+    help="" # TODO
   )
 
+  parser_main.add_argument(
+    '-v', '--verbose',
+    action='store_true',
+    default=False,
+    help="" # TODO
+  )
+
+  subparsers = parser_main.add_subparsers(
+    title='', # TODO
+    description="" # TODO
+  )
+
+  """============================ CHECK PARSER ============================"""
   parser_check = subparsers.add_parser(
     'check',
-    usage='%(prog)s [-h] [-k] [-c, -s | -n] CFG_FILE_PATH'
+    usage='', # TODO
+    help="" # TODO
   )
-
-  yes_checksum = parser_check.add_argument_group('Use checksum')
-  no_checksum = parser_check.add_argument_group('Ignore checksum')
   parser_check.set_defaults(func=check)
 
   parser_check.add_argument(
     'CFG_FILE',
-    help=f'System configuration JSON file in {cfg.CFG_DIR}'
+    action='store',
+    default=None,
+    help="" # TODO
   )
 
   parser_check.add_argument(
     '-k', '--keep-checksums',
     action='store_true', 
     default=False,
-    help='something'
+    help="" # TODO
   )
-
-  yes_checksum.add_argument(
-    '-c',
-    '--only-checksum',
+  
+  parser_check.add_argument(
+    '-c', '--only-checksum',
     action='store_true',
-    default=False
+    default=False,
+    help="" # TODO
   )
 
-  yes_checksum.add_argument(
-    '-s',
-    '--show-checksum',
+  parser_check.add_argument(
+    '-s', '--show-checksum',
     action='store_true',
-    default=False
+    default=False,
+    help="" # TODO
   )
 
-  no_checksum.add_argument(
-    '-n',
-    '--no-checksum',
+  parser_check.add_argument(
+    '-n', '--no-checksum',
     action='store_true',
-    default=False
+    default=False,
+    help="" # TODO
   )
 
-
-  parser_check.mutually_exclude_groups(yes_checksum, no_checksum)
-  """
-  Group exclusion must be triggered after groups are initialised.
-  For changes to be reflected after adding arguments to group,
-  the mutual exclusion method must be called again.
-  """
-
+  """============================= RUN PARSER ============================="""
   parser_run = subparsers.add_parser(
-    'run'
+    'run',
+    usage='', # TODO
+    help="" # TODO
   )
-
   parser_run.set_defaults(func=run)
 
   parser_run.add_argument(
     'CFG_FILE',
-    help=f'System configuration JSON file in {cfg.CFG_DIR}'
+    action='store',
+    default=None,
+    help="" # TODO
   )
 
   parser_run.add_argument(
-    '-f',
-    '--files-include',
+    '-f', '--files-include',
     action='store_true',
-    default=False
+    default=False,
+    help="" # TODO
   )
 
   parser_run.add_argument(
-    '-p',
-    '--pkgs-include',
+    '-p', '--pkgs-include',
     action='store_true',
-    default=False
+    default=False,
+    help="" # TODO
   )
 
   parser_run.add_argument(
-    '-r',
-    '--repos-include',
+    '-r', '--repos-include',
     action='store_true',
-    default=False
+    default=False,
+    help="" # TODO
   )
 
   parser_run.add_argument(
-    '-s',
-    '--scripts-include',
+    '-s', '--scripts-include',
     action='store_true',
-    default=False
+    default=False,
+    help="" # TODO
   )
 
-  args = parser.parse_args()
+  """============================= EXEC PARSER ============================"""
+  parser_exec = subparsers.add_parser(
+    'exec',
+    usage='', # TODO
+    help="" # TODO
+  )
+  parser_exec.set_defaults(func=exec)
 
-  no_option = True
-  for val in vars(args).values():
-    if val != None:
-      no_option = False
-      break
+  parser_exec.add_argument(
+    'SCRIPT_NAME',
+    action='store',
+    default=None,
+    help="" # TODO
+  )
 
-  if no_option:
-    parser.error("No arguments were provided")
+  """========================== UNINSTALL PARSER =========================="""
+  parser_uninstall = subparsers.add_parser(
+    'uninstall',
+    usage='', # TODO
+    help="" # TODO
+  )
+  parser_uninstall.set_defaults(func=uninstall)
 
+  parser_uninstall.add_argument(
+    '-s', '--with-state',
+    action='store_true',
+    default=False,
+    help="" # TODO
+  )
 
-  try: args.func(args)
-  except AttributeError: pass
+  parser_uninstall.add_argument(
+    '-c', '--with-config',
+    action='store_true',
+    default=False,
+    help="" # TODO
+  )
 
+  """============================= PARSE OPTS ============================="""
+  try:
+    args = vars(parser_main.parse_args())
+  except errors.FedorafigException as e:
+    raise
+  except SystemExit as e:
+    if e.code == 0: return
+    raise errors.FedorafigException("Incorrect usage", exc=e)
+  except Exception as e:
+    errors.log(e); print(help.REPORT_ISSUE)
 
-def set_cfg_dir(arg):
-  fpath = cfg.getpath(arg)
-  if not(os.path.exists(fpath) and os.path.isdir(fpath)):
-    MyArgumentParser().custom_error('fedorafig',
-      f'argument -f/--new-cfg-dir: path does not exist or is not a \
-      directory: {fpath}'.replace('  ', ''))
-
-  cfg_path = cfg.getpath('~/.local/lib/fedorafig/cfg.py')
-  for line in fileinput.input(cfg_path, inplace=True):
-    if line.startswith('CFG_DIR_REL ='):
-      line_new = f"CFG_DIR_REL = '{fpath}'"
-      print(line_new)
-    else:
-      print(line, end='')
-
-  return arg
+  if not any(opt is not None for opt in args.values()):
+    raise errors.FedorafigException("No arguments")
+  
+  if 'func' in args and args['func'] is not None: args['func'](args)
 
 
 def check(args):
-  try:
-    Check(args)
-  except errors.CheckException as e:
-    MyArgumentParser.custom_error('fedorafig check', e)
-  except Exception as e:
-    raise Exception(e)
+  from check import Check
+  try: Check(args)
+  except errors.FedorafigException as e: raise
+  except (Exception, SystemExit) as e: errors.log(e); print(help.REPORT_ISSUE)
 
 
 def run(args):
-  try:
-    Run(args)
-  except errors.RunException as e:
-    MyArgumentParser.custom_error('fedorafig run', e)
-  except Exception as e:
-    raise Exception(e)
+  from run import Run
+  try: Run(args)
+  except errors.FedorafigException as e: raise
+  except (Exception, SystemExit) as e: errors.log(e); print(help.REPORT_ISSUE)
+
+
+def exec(args):
+  name = args['SCRIPT_NAME']
+  path = os.path.join(cfg.COMMON_DIR, name)
+  if not os.path.isfile(path): raise errors.FedorafigException(
+    "script not found", path)
+  
+  from subprocess import run, CalledProcessError
+  run(['chmod', 'u+x', path], check=True)
+  try: run([path], check=True)
+  except CalledProcessError as e: print(e)
+
+
+def uninstall(args):
+  from subprocess import run
+
+  paths = [cfg.PROG_DIR, os.path.join(cfg.EXEC_DIR, 'fedorafig')]
+  if args['with_state']:
+    if os.path.isdir(cfg.STATE_DIR): paths.append(cfg.STATE_DIR)
+  if args['with_config']:
+    if os.path.isdir(cfg.CFG_DIR): paths.append(cfg.CFG_DIR)
+
+  print("Removing the following paths:")
+  for path in paths:
+    print(' ', path)
+
+  ans = input("Are you sure you want to proceed [y/N]: ")
+  if ans == 'Y' or ans == 'y':
+    for path in paths: run(['rm', '-rf', path], check=True)
 
 
 if __name__ == '__main__':

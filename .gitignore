@@ -1,3 +1,6 @@
 # Pipenv files #
 ################
 Pipfile*
+print-files.sh
+*output.txt
+*.bak

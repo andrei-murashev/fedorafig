@@ -2,8 +2,8 @@
 
 trap 'exit' INT
 
-mkdir -p ~/.config/fedorafig/ ~/.local/bin/
-mkdir -p ~/.local/state/fedorafig/ ~/.local/lib/fedorafig/
+source <(python3 src/cfg.py)
+mkdir -p "$CFG_DIR" "$PROG_DIR" "$EXEC_DIR" "$STATE_DIR"
 chmod u+x src/main.py
-cp -rf src/. ~/.local/lib/fedorafig/
-ln -s ~/.local/lib/fedorafig/main.py ~/.local/bin/fedorafig
+cp -rf src/. "$PROG_DIR"
+ln -s "$PROG_DIR"/main.py "$EXEC_DIR"/fedorafig

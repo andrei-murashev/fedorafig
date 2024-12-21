@@ -11,9 +11,13 @@
     "pkg": "htop"
   },
 
-  "repo only": {
-    "repo": "",
+  "repo must be accompanied by package": {
+    "repo": "mullvad-stable",
     "_COMMENT": "equivalent of adding a repo to be possibly used later"
+  },
+
+  "another repo": {
+    "repo": "rpmsphere"
   },
 
   "script only": {
