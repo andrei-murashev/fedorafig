@@ -13,43 +13,42 @@ import errors
 def main():
   """============================ MAIN PARSER ============================="""
   parser_main = argparse.ArgumentParser(
-    formatter_class=argparse.RawTextHelpFormatter,
+    formatter_class=argparse.RawDescriptionHelpFormatter,
     prog='fedorafig',
-    description="", # TODO
-    epilog="" # TODO
+    description="CLI utility for Fedora Linux to configure your system from a JSON file.",
+    epilog="Find out more at `https://github.com/andrei-murashev/fedorafig`."
   )
 
   parser_main.add_argument(
     '-c', '--set-cfg-dir',
     type=cfg.set_cfg_dir,
     action='store',
-    help="" # TODO
+    help="Changes the configuration directory."
   )
 
   parser_main.add_argument(
     '-q', '--quiet',
     action='store_true',
     default=False,
-    help="" # TODO
+    help="All output is suppressed."
   )
 
   parser_main.add_argument(
     '-v', '--verbose',
     action='store_true',
     default=False,
-    help="" # TODO
+    help="Reports more concrete processes."
   )
 
   subparsers = parser_main.add_subparsers(
-    title='', # TODO
-    description="" # TODO
+    title='commands',
+    description=""
   )
 
   """============================ CHECK PARSER ============================"""
   parser_check = subparsers.add_parser(
     'check',
-    usage='', # TODO
-    help="" # TODO
+    help="Checks whether utility configurations are valid."
   )
   parser_check.set_defaults(func=check)
 
@@ -57,42 +56,42 @@ def main():
     'CFG_FILE',
     action='store',
     default=None,
-    help="" # TODO
+    help="The configuration file for the utility tying all configuration assets."
   )
 
   parser_check.add_argument(
     '-k', '--keep-checksums',
     action='store_true', 
     default=False,
-    help="" # TODO
+    help="Keeps all old checksums, which are usually deleted."
   )
   
   parser_check.add_argument(
     '-c', '--only-checksum',
     action='store_true',
     default=False,
-    help="" # TODO
+    help="Only calculates the checksum of CFG_FILE and saves it."
   )
 
   parser_check.add_argument(
     '-s', '--show-checksum',
     action='store_true',
     default=False,
-    help="" # TODO
+    help="Shows checksum of CFG_FILE after it is calculated."
   )
 
   parser_check.add_argument(
     '-n', '--no-checksum',
     action='store_true',
     default=False,
-    help="" # TODO
+    help="Skips calculating the checksum of CFG_FILE."
   )
 
   """============================= RUN PARSER ============================="""
   parser_run = subparsers.add_parser(
     'run',
-    usage='', # TODO
-    help="" # TODO
+    help="Applies all configurations to your system through the utility. \
+      When a flag is provided nothing is initially applied, but if a flag is used, a part of the configuration specified by the flag will be applied."
   )
   parser_run.set_defaults(func=run)
 
@@ -100,42 +99,42 @@ def main():
     'CFG_FILE',
     action='store',
     default=None,
-    help="" # TODO
+    help="The configuration file for the utility tying all configuration assets."
   )
 
   parser_run.add_argument(
     '-f', '--files-include',
     action='store_true',
     default=False,
-    help="" # TODO
+    help="Includes the application of all file transfers."
   )
 
   parser_run.add_argument(
     '-p', '--pkgs-include',
     action='store_true',
     default=False,
-    help="" # TODO
+    help="Includes the application of all package installations."
   )
 
   parser_run.add_argument(
     '-r', '--repos-include',
     action='store_true',
     default=False,
-    help="" # TODO
+    help="Includes the application of all specified repository enabling."
   )
 
   parser_run.add_argument(
     '-s', '--scripts-include',
     action='store_true',
     default=False,
-    help="" # TODO
+    help="Includes the running of all scripts at the end."
   )
 
   """============================= EXEC PARSER ============================"""
   parser_exec = subparsers.add_parser(
     'exec',
-    usage='', # TODO
-    help="" # TODO
+    help="Runs commonlu-used scripts stored in the `common` folder, in the \
+      utility configuration folder."
   )
   parser_exec.set_defaults(func=exec)
 
@@ -143,14 +142,13 @@ def main():
     'SCRIPT_NAME',
     action='store',
     default=None,
-    help="" # TODO
+    help="The name of the script you wish to run."
   )
 
   """========================== UNINSTALL PARSER =========================="""
   parser_uninstall = subparsers.add_parser(
     'uninstall',
-    usage='', # TODO
-    help="" # TODO
+    help="Uninstalls the utility for you."
   )
   parser_uninstall.set_defaults(func=uninstall)
 
@@ -158,14 +156,14 @@ def main():
     '-s', '--with-state',
     action='store_true',
     default=False,
-    help="" # TODO
+    help="Also delete the state directory while uninstalling."
   )
 
   parser_uninstall.add_argument(
     '-c', '--with-config',
     action='store_true',
     default=False,
-    help="" # TODO
+    help="Also delete the configuration directory while uninstalling."
   )
 
   """============================= PARSE OPTS ============================="""

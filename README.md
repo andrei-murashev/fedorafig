@@ -1,7 +1,7 @@
-# fedorafig v0.3.0-alpha
+# fedorafig v0.3.1-alpha
 <img
   alt="version static badge"
-  src="https://img.shields.io/badge/version-0.3.0-blue"
+  src="https://img.shields.io/badge/version-0.3.1-blue"
   height=25>
 <img
   alt="unlicense license static badge"
@@ -257,7 +257,3 @@ with `-q` or `--quiet`
 ### Verbose output
 Very detailed output is printed to `stdout` when the utility is running. Can be
 specified with `-v` or `--verbose`
-
-### Switch to JSON5 configuration files
-Configuration files will be parsed from files of the JSON5 format, a more user-
-friendly version of JSON. This will mark the 1.0.0 release.

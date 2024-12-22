@@ -31,7 +31,9 @@ class Check():
 
     # if you are performing `run` without checking, you just need to
     # collect all the values
-    if sys.argv[1] == 'run': self.__check_syntax(collect_only=True); return
+    if sys.argv[1] == 'run':
+      print("Gathering data")
+      self.__check_syntax(collect_only=True); return
 
     # Check that there are no contradicting options
     checksum_yes \
@@ -48,6 +50,7 @@ class Check():
       raise errors.FedorafigException("Conflicting options", *tmp_args)
 
     # Run the actual checking
+    print("Verifying fedorafig configurations")
     if not args['keep_checksums']: self.__delete_checksums()
     if not args['only_checksum']: self.__check_syntax()
     if not args['no_checksum']:
@@ -68,6 +71,7 @@ class Check():
 
   def __check_syntax(self, collect_only=False):
     # Collecting items for checking
+    print("Checking syntax")
     for key, entry in self.data.items():
       if key == '_COMMENT': continue
 
@@ -100,9 +104,10 @@ class Check():
       if syspath or cfgpath: cfg.SYS_N_CFG_DIRS.append((syspath, cfgpath))
       if script: cfg.SCRIPT_FILES.append(script)
     
-    # Checking existence of paths
     if collect_only: return
-
+    
+    # Checking existence of paths
+    print("Checking existence of configuration and system paths")
     for syspath, cfgpath in cfg.SYS_N_CFG_DIRS:
       if not os.path.isdir(cfgpath):
         raise errors.FedorafigException("cfgpath not found", syspath)
@@ -116,11 +121,13 @@ class Check():
       if not (bool(syspath) == bool(cfgpath)): raise errors.FedorafigException(
         "syspath and cfgpath were not found together", syspath, cfgpath)
 
+    print("Checking existence of scripts")
     for script in cfg.SCRIPT_FILES:
       if not os.path.isfile(script): raise errors.FedorafigException(
         "script not found", script)
 
     # Checking existence of repos and packages
+    print("Checking existence of repos")
     cmd = ['dnf', f'--setopt=reposdir={cfg.REPOS_DIR}', 'repolist', 'all']
     try: out = subprocess.run(cmd, text=True, check=True,
       stdout=subprocess.PIPE)
@@ -137,6 +144,7 @@ class Check():
     if not (repos := out.stdout.splitlines()): raise errors.FedorafigException(
       "No repos found")
 
+    print("Checking existence of packages")
     for repo, pkg in cfg.REPOS_N_PKGS:
       if repo == 'all': continue
 
@@ -161,6 +169,7 @@ class Check():
 
   @staticmethod
   def calc_checksum(cfg_file):
+    print("Calculating checksum")
     hasher = hashlib.sha256()
     dpaths = [cfg.CFGS_DIR, cfg.REPOS_DIR, cfg.SCRIPTS_DIR]
 
@@ -179,6 +188,7 @@ class Check():
 
 
   def __save_checksum(self):
+    print("Saving checksum")
     fname = f'{self.file}.sha256'
     hash_fpath = os.path.join(cfg.STATE_DIR, fname)
     with open(hash_fpath, 'w') as fh: fh.write(self.checksum)

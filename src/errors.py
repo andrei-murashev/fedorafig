@@ -13,18 +13,10 @@ class FedorafigException(Exception):
   def __init__(self, msg, *pargs, args=None, exc=None):
     print("FedorafigException raised", flush=True)
     if exc is None:
-      super().__init__(msg);
+      print(f"fedorafig: {msg}:", *pargs)
     else:
-      print(msg)
-      if isinstance(exc, SystemExit): traceback.print_exception(
-        type(exc), exc, exc.__traceback__)
-      else: raise exc
-
-
-  @staticmethod
-  def format(args, exc):
-    pass
-
+      print(f"Python error: {exc}")
+      print(f"fedorafig: {msg}:", *pargs)
 
 
 LOG = None

@@ -48,6 +48,7 @@ class Run():
       self.args['scripts_include']
     ]
 
+    print("Applying configurations")
     if True not in flags:
       self.__repos_do()
       self.__pkgs_do()
@@ -76,7 +77,7 @@ class Run():
     if enable_all:
       repos_cmd = ['--set-enabled']
       for repo, pkg in cfg.REPOS_N_PKGS:
-        if repo == 'all': continue
+        if repo == 'all': print("Enabling all repos"); continue
         elif repo and not pkg: repos_cmd += [repo]
       subprocess.run(['sudo', 'dnf', 'config-manager', *repos_cmd], check=True)
 
@@ -86,23 +87,30 @@ class Run():
   def __pkgs_do(self):
     if not self.repos_done: self.__repos_do()
     for repo, pkg in cfg.REPOS_N_PKGS:
-      if repo == 'all' and pkg: subprocess.run([
-        'sudo', 'dnf', 'install', '--enablerepo=*', pkg, '-y'], check=True)
-      elif repo and pkg: subprocess.run([
-        'sudo', 'dnf', 'install', f'--enablerepo={repo}', pkg, '-y'],
-        check=True)
+      if repo == 'all' and pkg:
+        print(f"Temporarily enabling all repositories to install {pkg}")
+        subprocess.run(
+          ['sudo', 'dnf', 'install', '--enablerepo=*', pkg, '-y'], check=True)
+      elif repo and pkg:
+        print(f"Temporarily enabling repository {repo} to install {pkg}")
+        subprocess.run(
+          ['sudo', 'dnf', 'install', f'--enablerepo={repo}', pkg, '-y'],
+          check=True)
         # NOTE: This does not disable other repos.
-      elif pkg and not repo: subprocess.run([
-        'sudo', 'dnf', 'install', pkg, '-y'], check=True)
+      elif pkg and not repo:
+        print(f"Installing {pkg}")
+        subprocess.run(['sudo', 'dnf', 'install', pkg, '-y'], check=True)
 
 
   def __files_do(self):
     for syspath, cfgpath in cfg.SYS_N_CFG_DIRS:
       cfgpath_items = os.path.join(cfgpath, '.')
+      print(f"Copying {cfgpath_items} to {syspath}")
       subprocess.run(['sudo', 'cp', '-rf', cfgpath_items, syspath], check=True)
 
 
   def __scripts_do(self):
     for script in cfg.SCRIPT_FILES:
+      print(f"Running script {script}")
       subprocess.run(['sudo', 'chmod', 'u+x', script], check=True)
       subprocess.run(['sudo', script], check=True)
