@@ -41,13 +41,16 @@ class Check():
 
     if not args['keep_checksums']:
       self.__delete_checksums()
+
     if not args['only_checksum']:
       entries: List[cmn.Entry.SelfType] = self.__check_types()
       cmn.collect_entries(entries)
-      for entry in cmn.ENTRIES: self.check_syntax(entry)
+      self.check_syntax(cmn.ENTRIES)
+
     if not args['no_checksum']:
       self.checksum = self.calc_checksum(self.file)
       self.__save_checksum()
+
     if args['show_checksum']:
       print(f"{self.file} checksum: {self.checksum}")
 
@@ -77,8 +80,28 @@ class Check():
 
 
   @staticmethod
-  def check_syntax(entry: cmn.Entry) -> None: pass
+  def check_syntax(entries: List[cmn.Entry]) -> None: pass
     # Check if repos exist if they are specified.
+    cmd: List[str]; out: sp.CompletedProcess
+
+    cmd = ['dnf', f'--setopt=reposdir={cmn.REPOS_PATH}', 'repolist', 'all']
+    try: out = sp.run(cmd, text=True, check=True, stdout=sp.PIPE)
+    except sp.CalledProcessError as e: raise err.FedorafigExc(e.stderr)
+
+    cmd = ['awk', '{print $1}']
+    out = sp.run(cmd, text=True, input=out.stdout, check=True, stdout=sp.PIPE)
+    cmd = ['tail', '-n', '+2']
+    out = sp.run(cmd, text=True, input=out.stdout, check=True, stdout=sp.PIPE)
+    if not (repolist := out.stdout.splitlines()): raise err.FedorafigExc(
+      "No repos found")
+
+    for entry in entry:
+      repos_n_pkgs: Tuple[List[str], List[str]] = (entry.repos, entry.pkgs)
+      script_paths: List[str] = entry.prerun_scripts + entry.postrun_scripts
+      copy_paths: List[str] = \
+        [dpath for dpaths in entry.copies for dpath in dpaths]
+      print(repos_n_pkgs, script_paths, copy_paths)
+
     # Check if pkgs exist, and if they are in the specified repos.
     # Check all scripts exists and they are executable.
     # Check if files to be copied exist and if the directories to be copied
@@ -103,8 +126,8 @@ class Check():
   def calc_checksum(fpath: str) -> str:
     import hashlib
     hasher: hashlib._Hash = hashlib.sha256()
-    dpaths: List[str] = \
-      [cmn.CFGS_PATH, cmn.REPOS_PATH, cmn.SCRIPTS_PATH, cmn.COMMON_PATH]
+    dpaths: List[str] \
+      = [cmn.CFGS_PATH, cmn.REPOS_PATH, cmn.SCRIPTS_PATH, cmn.COMMON_PATH]
     dpaths = [dpath for dpath in dpaths if path.isdir(dpath)]
     
     for dpath in dpaths:

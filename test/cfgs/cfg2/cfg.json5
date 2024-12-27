@@ -1,0 +1,34 @@
+{
+  work_CLIs: {
+    prerun_scripts: ['hello.sh'],
+    postrun_scripts: ['bye.sh'],
+    repos: ['all'],
+
+    pkgs: [
+      'git',
+      'tmux',
+      'htop',
+    ],
+  },
+
+  fun_CLIs: {
+    postrun_scripts: ['neofetch.sh'],
+
+    copies: [
+      ['neofetch', '~/.config/neofetch'],
+      ['lolcat-config.sh', '~/.local/bin/lolcat-wrapper'],
+    ],
+
+    pkgs: [
+      'neofetch',
+      'cmatrix',
+      'lolcat',
+    ],
+  },
+
+  // comment
+  comms: {
+    repos: ['rpmfusion-free'],
+    pkgs: ['telegram-desktop'],
+  },
+}
