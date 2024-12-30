@@ -1,3 +1,5 @@
+# TODO: See where I can leave out `text=True` in `sp`
+
 # System imports
 from os import path
 from typing import *
@@ -13,13 +15,13 @@ import cmn, err
 class Check():
   def __init__(self, args) -> None:
     self.args: Dict[str, cmn.ArgsDict] = args
-    self.file: str = args['CFG_FILE']
+    self.fname: str = args['CFG_FILE']
     self.checksum: str
 
-    fpath = path.join(cmn.CFG.path, self.file)
+    fpath = path.join(cmn.CFG.path, self.fname)
     if not path.isfile(fpath): raise err.FedorafigExc(
       "File not found", fpath)
-    with open(path.join(cmn.CFG.path, self.file), 'r') as fh:
+    with open(path.join(cmn.CFG.path, self.fname), 'r') as fh:
       try: self.data: dict[str, Any] = json5.load(fh)
       except Exception as e: raise err.FedorafigExc(
         "JSON5 parsing error", exc=e)
@@ -44,12 +46,13 @@ class Check():
     if not args['only_checksum']:
       entries: List[cmn.Entry.SelfType] = self.__check_types()
       cmn.collect_entries(entries)
-      for entry in cmn.ENTRIES: self.check_syntax(entry)
+      self.check_syntax(cmn.ENTRIES, interactive=bool(self.args['interactive']))
     if not args['no_checksum']:
-      self.checksum = self.calc_checksum(self.file)
+      self.checksum = self.calc_checksum(path.join(cmn.CFG.path, self.fname),
+        cmn.COPIES_PATH, cmn.REPOS_PATH, cmn.SCRIPTS_PATH, cmn.COMMON_PATH)
       self.__save_checksum()
     if args['show_checksum']:
-      print(f"{self.file} checksum: {self.checksum}")
+      print(f"{self.fname} checksum: {self.checksum}")
 
   
   def __check_types(self) -> List[cmn.Entry.SelfType]:
@@ -77,12 +80,73 @@ class Check():
 
 
   @staticmethod
-  def check_syntax(entry: cmn.Entry) -> None: pass
-    # Check if repos exist if they are specified.
-    # Check if pkgs exist, and if they are in the specified repos.
-    # Check all scripts exists and they are executable.
-    # Check if files to be copied exist and if the directories to be copied
-    # exist or can be created without elevating permissions.
+  def check_syntax(entries: List[cmn.Entry], interactive: bool = True) -> None:
+    cmd: List[str]; out: sp.CompletedProcess
+
+    cmd = ['dnf', f'--setopt=reposdir={cmn.REPOS_PATH}',
+      '--enablerepo=*', 'makecache']
+    try: out = sp.run(cmd, check=True, stderr=sp.PIPE)
+    except sp.CalledProcessError as e: raise err.FedorafigExc(e.stderr)
+
+    cmd = ['dnf', f'--setopt=reposdir={cmn.REPOS_PATH}', 'repolist', 'all']
+    print(' '.join(cmd))
+    try: out = sp.run(cmd, text=True, check=True, stdout=sp.PIPE)
+    except sp.CalledProcessError as e: raise err.FedorafigExc(e.stderr)
+
+    cmd = ['awk', '{print $1}']
+    out = sp.run(cmd, text=True, input=out.stdout, check=True, stdout=sp.PIPE)
+    cmd = ['tail', '-n', '+2']
+    out = sp.run(cmd, text=True, input=out.stdout, check=True, stdout=sp.PIPE)
+    if not (repolist := out.stdout.splitlines()): raise err.FedorafigExc(
+      "No repos found")
+    print(repolist)
+
+    repos_n_pkgs_pairs: List[Tuple[List[str], List[str]]] = []
+    script_paths: List[str] = []; copy_paths: List[str] = []
+    for entry in entries:
+      repos_n_pkgs_pairs += [(entry.repos, entry.pkgs)]
+      script_paths += entry.prerun_scripts + entry.postrun_scripts
+      copy_paths += [dpath for dpaths in entry.copies for dpath in dpaths]
+
+    for repos, pkgs in (pair for pair in repos_n_pkgs_pairs):
+      for repo in repos:
+        if repo not in repolist and repo != '*': raise err.FedorafigExc(
+          "Repo not found", repo)
+      if pkgs and not repos:
+        cmd = ['dnf', f'--setopt=reposdir={cmn.REPOS_PATH}', 'repoquery', *pkgs]
+      if pkgs and repos:
+        repo_enables: List[str] = [f'--enablerepo={repo}' for repo in repos]
+        print(repo_enables)
+        cmd = ['dnf', f'--setopt=reposdir={cmn.REPOS_PATH}', *repo_enables, 
+          'repoquery', *pkgs]
+      try: sp.run(cmd, text=True, check=True, stderr=sp.PIPE) if cmd else None
+      except sp.CalledProcessError as e: raise err.FedorafigExc(e.stderr)
+
+    for script_path in script_paths:
+      if not path.isfile(script_path): raise err.FedorafigExc(
+        "File not found", script_path)
+
+    if not path.exists(copy_paths[0]): raise err.FedorafigExc(
+      "Copy source does not exist", copy_paths[0])
+    for copy_path in copy_paths[1:]:
+      dir: str = copy_path[:copy_path.rfind('/')]
+      cmd = ['mkdir', '-p', dir]
+      
+      if copy_path.startswith(cmn.CFG.path) and not path.exists(copy_path):
+        raise err.FedorafigExc("Path not found", copy_path)
+
+      elif not path.isdir(dir) and interactive:
+        ans = input(f"Create directory {dir} [y/N]: ")
+        from itertools import product
+        opts: List[Tuple[str, str]] = [('y', 'Y'), ('e', 'E'), ('s', 'S')]
+        if ans in [''.join(comb) for comb in product(*opts)] + ['y', 'Y']:
+          try: sp.run(cmd, check=True, stderr=sp.PIPE)
+          except sp.CalledProcessError as e: raise err.FedorafigExc(e.stderr)
+        else: continue
+      elif not(path.isdir(dir) or interactive):
+        try: sp.run(cmd, check=True, stderr=sp.PIPE)
+        except sp.CalledProcessError as e: raise err.FedorafigExc(e.stderr)
+
 
   def __delete_checksums(self) -> None:
     matches = glob.glob(path.join(cmn.STATE_DIR, '*.sha256'))
@@ -94,26 +158,29 @@ class Check():
 
 
   def __save_checksum(self) -> None:
-    fname = f'{self.file}.sha256'
+    fname = f'{self.fname}.sha256'
     fpath = path.join(cmn.STATE_DIR, fname)
     with open(fpath, 'w') as fh: fh.write(self.checksum)
 
 
   @staticmethod
-  def calc_checksum(fpath: str) -> str:
-    import hashlib
+  def calc_checksum(*apaths: str) -> str:
+    import hashlib; chunk: bytes
     hasher: hashlib._Hash = hashlib.sha256()
-    dpaths: List[str] = \
-      [cmn.CFGS_PATH, cmn.REPOS_PATH, cmn.SCRIPTS_PATH, cmn.COMMON_PATH]
-    dpaths = [dpath for dpath in dpaths if path.isdir(dpath)]
     
-    for dpath in dpaths:
-      from os import walk
-      for root, _, files in walk(dpath):
-        for file in sorted(files):
-          ffpath: str = path.join(root, file)
-          with open(ffpath, 'rb') as fh:
-            chunk: bytes = fh.read(8192)
-            while chunk: hasher.update(chunk)
+    for apath in apaths:
+      if path.isfile(apath):
+        with open(apath, 'rb') as fh:
+          while chunk := fh.read(8192): hasher.update(chunk)
+
+      elif path.isdir(apath):
+        from os import walk
+        for root, _, files in walk(apath):
+          for file in sorted(files):
+            fpath: str = path.join(root, file)
+            with open(fpath, 'rb') as fh:
+              while chunk := fh.read(8192): hasher.update(chunk)
+      
+      else: raise err.LogExc(Exception("Path not found", apath))
 
     return hasher.hexdigest()

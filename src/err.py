@@ -3,7 +3,7 @@
 
 class FedorafigExc(Exception):
   def __init__(self, msg: str, *args, exc: BaseException | None = None) -> None:
-    print("fedorafig:", end=' '); print(msg, *args)
+    print("fedorafig:", f"{msg}:", *args)
     if exc is not None: print("Accompanying error:", str(exc))
 
 
@@ -17,4 +17,4 @@ class LogExc(Exception):
     )
 
     logging.error(str(exc), exc_info=exc)
-    print("fedorafig:", "Unknown error:", str(exc))
+    print("fedorafig:", "Unforeseen error:", str(exc))

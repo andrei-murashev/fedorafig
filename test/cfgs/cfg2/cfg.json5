@@ -2,7 +2,7 @@
   work_CLIs: {
     prerun_scripts: ['hello.sh'],
     postrun_scripts: ['bye.sh'],
-    repos: ['all'],
+    repos: ['*'],
 
     pkgs: [
       'git',
@@ -15,8 +15,8 @@
     postrun_scripts: ['neofetch.sh'],
 
     copies: [
-      ['neofetch', '~/.config/neofetch'],
-      ['lolcat-config.sh', '~/.local/bin/lolcat-wrapper'],
+      ['neofetch', '~/.config/neofetch/.'],
+      ['lolcat-wrapper.sh', '~/.local/bin/lolcat-wrapper'],
     ],
 
     pkgs: [

@@ -86,6 +86,13 @@ def main() -> None:
     help="Skips calculating the checksum of CFG_FILE."
   )
 
+  parser_check.add_argument(
+    '-i', '--interactive',
+    action='store_true',
+    default=False,
+    help="Will ask for confirmation when making changes to the file system."
+  )
+
   # RUN PARSER =================================================================
   parser_run = subparsers.add_parser(
     'run',
