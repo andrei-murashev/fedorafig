@@ -4,3 +4,5 @@ Pipfile*
 print-files.sh
 *output.txt
 *.bak
+*__pycache__
+*.mypy_cache

@@ -1,184 +1,123 @@
-# System imports
-import os
-import sys
-import json
-import glob
-import hashlib
-import subprocess
+# IMPORTS ======================================================================
+from os import path; from typing import *
+from subprocess import PIPE; import cmn, err
 
-# Local packages
-import cfg
-import errors
+# CONFIGURATION CHECK ==========================================================
+def check(args: cmn.ArgsDict) -> None:
+  fpath: str = path.join(cmn.CFG.path, str(args['CFG_FILE']))
+  if not path.isfile(fpath): raise err.FedorafigExc("File not found", fpath)
+  with open(fpath, 'r') as fh:
+    from json5 import load
+    try: data: Dict[str, Any] = load(fh)
+    except Exception as e: raise err.FedorafigExc(
+      "JSON5 parsing error", exc=e)
 
-# NOTE:
-# I have decided that the `repo` entry must be the actual name of the repos-
-# itroy, not the name of the repo files. The repos that will be initially
-# enabled will be ones specified in `repos`. It is the user's responsibility
-# to understand their `.repo` files.
+  checksum_yes: Dict[str, bool] \
+    = {key: bool(args[key]) for key in ['only_checksum', 'show_checksum']}
+  checksum_no: Dict[str, bool]  \
+    = {key: bool(args[key]) for key in ['no_checksum']}
+  tmp_args: List[str] \
+    = [key for key, val in (checksum_yes | checksum_no).items() if val]
 
+  dict_disj: Callable[[Dict[str, bool]], bool] \
+    = lambda bool_dict: True in bool_dict.values()
+  if dict_disj(checksum_yes) and dict_disj(checksum_no):
+    tmp_args = [f'--{arg.replace('_', '-')}' for arg in tmp_args]
+    raise err.FedorafigExc("Confliction options", *tmp_args)
 
-class Check():
-  def __init__(self, args):
-    self.args = args
-    self.checksum = None
-    self.file = args['CFG_FILE']
+  if not args['keep_checksums']: delete_checksums()
+  if not args['only_checksum']:
+    entries: List[cmn.Entry.SelfType] = extract_entries(data)
+    cmn.collect_entries(entries)
+    entries_check(cmn.ENTRIES)
+  if not args['no_checksum']:
+    checksum = calc_checksum(fpath, cmn.COPIES_PATH,
+      cmn.REPOS_PATH, cmn.SCRIPTS_PATH, cmn.COMMON_PATH)
+    fpath = path.join(cmn.STATE_DIR, f'{path.basename(fpath)}.sha256')
+    with open(fpath, 'w') as fh: fh.write(checksum)
+  if args['show_checksum']: print(
+    f"{path.basename(fpath)} checksum: {checksum}")
 
-    fpath = os.path.join(cfg.CFG_DIR, self.file)
-    if not os.path.isfile(fpath): raise errors.FedorafigException(
-      "File not found", fpath)
-    with open(os.path.join(cfg.CFG_DIR, self.file)) as fh:
-      self.data = json.load(fh)
+# JSON5 TO ENTRIES LIST ========================================================
+def extract_entries(data: Dict[str, Any]) -> List[cmn.Entry.SelfType]:
+  entries: List[cmn.Entry.SelfType] = []
+  for entry in data.values():
+    if not isinstance(entry, Dict): raise err.FedorafigExc(
+      "Entry is of an incompatible type", type(entry))
+    for key in entry.keys():
+      if not isinstance(key, str): raise err.FedorafigExc(
+        "Entry key is not a string", "Entry type:", {type(key)})
 
-    # if you are performing `run` without checking, you just need to
-    # collect all the values
-    if sys.argv[1] == 'run': self.__check_syntax(collect_only=True); return
+    for val in entry.values():
+      if not isinstance(val, List): raise err.FedorafigExc(
+        "Entry value is not a list is not a list", "Value type:", {type(val)})
 
-    # Check that there are no contradicting options
-    checksum_yes \
-      = {key: args[key] for key in ['only_checksum', 'show_checksum']}
-    checksum_no \
-      = {key: args[key] for key in ['no_checksum']}
+      for elem in val:
+        if isinstance(elem, List):
+          elem_list = elem
+          if all(isinstance(elem, str) for elem in elem_list): continue
+        elif not isinstance(elem, str): raise err.FedorafigExc(
+          "Entry value element is not a string", "Value type:", type(val))
 
-    tmp_args \
-      = [key for key, val in (checksum_yes | checksum_no).items() if val]
-    dict_disj = lambda bool_dict: True in bool_dict.values()
+    entries.append(entry)
+  return entries
 
-    if dict_disj(checksum_yes) and dict_disj(checksum_no):
-      tmp_args = [f'--{arg.replace('_', '-')}' for arg in tmp_args]
-      raise errors.FedorafigException("Conflicting options", *tmp_args)
+# CHECK ENTRY SYNTAX AND PROPERTY EXISTENCE ====================================
+def entries_check(entries: List[cmn.Entry]) -> None:
+  # NOTE: uncomment later cmn.shell(f'dnf --setopt=reposdir={cmn.REPOS_PATH} --enablerepo=* makecache')
 
-    # Run the actual checking
-    if not args['keep_checksums']: self.__delete_checksums()
-    if not args['only_checksum']: self.__check_syntax()
-    if not args['no_checksum']:
-      self.checksum = self.calc_checksum(self.file)
-      self.__save_checksum()
-    if args['show_checksum']:
-      print(f"{self.file} checksum: {self.checksum}")
+  repos_n_pkgs_pairs: List[Tuple[List[str], List[str]]] = []
+  script_paths: List[str] = []; copies: List[List[str]] = []
+  for entry in entries:
+    repos_n_pkgs_pairs += [(entry.repos, entry.pkgs)]
+    script_paths += entry.prerun_scripts + entry.postrun_scripts
+    copies += entry.copies
 
+  for repos, pkgs in (pair for pair in repos_n_pkgs_pairs):
+    print("REPOS AND PKGS:", repos, pkgs)
+    for repo in repos:
+      if repo not in cmn.REPOLIST and repo != '*':
+        print("matched case 1")
+        raise err.FedorafigExc(
+        "Repo not found", repo)
+    if pkgs and not repos:
+      cmn.shell(f'dnf --setopt=reposdir={cmn.REPOS_PATH}',
+        'repoquery', ' '.join(pkgs))
+      print("matched case 2")
+    if pkgs and repos:
+      repo_enables: List[str] = [f'--enablerepo={repo}' for repo in repos]
+      cmn.shell(f'dnf --setopt=reposdir={cmn.REPOS_PATH}',
+        ' '.join(repo_enables), 'repoquery', ' '.join(pkgs))
+      print("matched case 3")
 
-  def __delete_checksums(self):
-    matches = glob.glob(os.path.join(cfg.STATE_DIR, '*.sha256'))
+  for copy_paths in copies:
+    if not path.exists(copy_paths[0]): raise err.FedorafigExc(
+      "Path not found", script_paths[0])
 
-    for match in matches:
-      try: os.remove(match)
-      except Exception as e: raise errors.FedorafigException(
-        "Unable to remove checksum file", match, exc=e)
+# JSON5 TO ENTRIES LIST ========================================================
+def delete_checksums() -> None:
+  from glob import glob
+  matches = glob(path.join(cmn.CFG.path, '*.json5'))
+  for match in matches: cmn.shell(f'rm -rf {match}.sha256 || True')
 
+# CALCULATE CHECKSUM FOR DIR OR FILE ===========================================
+def calc_checksum(*apaths: str) -> str:
+  import hashlib; chunk: bytes
+  hasher: hashlib._Hash = hashlib.sha256()
+  
+  for apath in apaths:
+    if path.isfile(apath):
+      with open(apath, 'rb') as fh:
+        while chunk := fh.read(8192): hasher.update(chunk)
 
-  def __check_syntax(self, collect_only=False):
-    # Collecting items for checking
-    for key, entry in self.data.items():
-      if key == '_COMMENT': continue
-
-      if not isinstance(entry, dict): raise errors.FedorafigException(
-        "Entry is not a JSON object", entry)
-
-      cfgpath, syspath, pkg, repo, script = None, None, None, None, None
-
-      for subkey, subentry in entry.items():
-        if subkey == '_COMMENT': continue
-        
-        elif subkey == 'syspath':
-          syspath = cfg.resolve_path(subentry)
-
-        elif subkey == 'cfgpath':
-          cfgpath = os.path.join(cfg.CFGS_DIR, subentry)
-
-        elif subkey == 'repo':
-          repo = subentry
-
-        elif subkey == 'pkg':
-          pkg = subentry
-
-        elif subkey == 'script':
-          script = os.path.join(cfg.SCRIPTS_DIR, subentry)
-
-        else: raise errors.FedorafigException("Invalid key found", subkey)
-
-      if repo or pkg: cfg.REPOS_N_PKGS.append((repo, pkg))
-      if syspath or cfgpath: cfg.SYS_N_CFG_DIRS.append((syspath, cfgpath))
-      if script: cfg.SCRIPT_FILES.append(script)
-    
-    # Checking existence of paths
-    if collect_only: return
-
-    for syspath, cfgpath in cfg.SYS_N_CFG_DIRS:
-      if not os.path.isdir(cfgpath):
-        raise errors.FedorafigException("cfgpath not found", syspath)
-
-      if not os.path.isdir(syspath):
-        try: os.makedirs(syspath, exist_ok=True)
-        except Exception as e: raise errors.FedorafigException(
-          "Unable to find directory or make it and its parents",
-          syspath, exc=e)
-
-      if not (bool(syspath) == bool(cfgpath)): raise errors.FedorafigException(
-        "syspath and cfgpath were not found together", syspath, cfgpath)
-
-    for script in cfg.SCRIPT_FILES:
-      if not os.path.isfile(script): raise errors.FedorafigException(
-        "script not found", script)
-
-    # Checking existence of repos and packages
-    cmd = ['dnf', f'--setopt=reposdir={cfg.REPOS_DIR}', 'repolist', 'all']
-    try: out = subprocess.run(cmd, text=True, check=True,
-      stdout=subprocess.PIPE)
-    except subprocess.CalledProcessError as e: raise errors.FedorafigException(
-      ".repo file incorrectly formatted", exc=e)
-
-    cmd = ['awk', '{print $1}']
-    out = subprocess.run(cmd, text=True, input=out.stdout, check=True, 
-      stdout=subprocess.PIPE)
-    cmd = ['tail', '-n', '+2']
-    out = subprocess.run(cmd, text=True, input=out.stdout, check=True, 
-      stdout=subprocess.PIPE)
-
-    if not (repos := out.stdout.splitlines()): raise errors.FedorafigException(
-      "No repos found")
-
-    for repo, pkg in cfg.REPOS_N_PKGS:
-      if repo == 'all': continue
-
-      elif repo and repo not in repos: raise errors.FedorafigException(
-        "repo does not exist", repo)
-
-      elif pkg and not repo:
-        try: subprocess.run(['dnf', f'--setopt=reposdir={cfg.REPOS_DIR}',
-          'repoquery', pkg], check=True, stderr=subprocess.PIPE, text=True)
-        except subprocess.CalledProcessError: raise errors.FedorafigException(
-          "Unable to find package", pkg)
-
-      elif pkg and repo:
-        try: subprocess.run([
-          'dnf', f'--setopt=reposdir={cfg.REPOS_DIR}',
-          'repoquery', f'--repo={repo}', pkg],
-          check=True, stderr=subprocess.PIPE, text=True)
-        except subprocess.CalledProcessError as e:
-          raise errors.FedorafigException(
-            "Unable to find package from repo", pkg, repo)
-
-
-  @staticmethod
-  def calc_checksum(cfg_file):
-    hasher = hashlib.sha256()
-    dpaths = [cfg.CFGS_DIR, cfg.REPOS_DIR, cfg.SCRIPTS_DIR]
-
-    for dpath in dpaths:
-      for root, _, files in os.walk(dpath):
+    elif path.isdir(apath):
+      from os import walk
+      for root, _, files in walk(apath):
         for file in sorted(files):
-          path = os.path.join(root, file)
-          with open(path, 'rb') as fh:
+          fpath: str = path.join(root, file)
+          with open(fpath, 'rb') as fh:
             while chunk := fh.read(8192): hasher.update(chunk)
     
-    fpath = os.path.join(cfg.CFG_DIR, cfg_file)
-    with open(fpath, 'rb') as fh:
-      while chunk := fh.read(8192): hasher.update(chunk)
+    else: raise err.LogExc(Exception("Path not found", apath))
 
-    return hasher.hexdigest()
-
-
-  def __save_checksum(self):
-    fname = f'{self.file}.sha256'
-    hash_fpath = os.path.join(cfg.STATE_DIR, fname)
-    with open(hash_fpath, 'w') as fh: fh.write(self.checksum)
+  return hasher.hexdigest()

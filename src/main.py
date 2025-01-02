@@ -1,156 +1,178 @@
 #!/bin/env python3
 
-# System imports
-import os
-import argparse
+# IMPORTS ======================================================================
+from os import path
+from argparse import ArgumentParser, RawDescriptionHelpFormatter
+import cmn, err
 
-# Local imports
-import cfg
-import help
-import errors
-
-
-def main():
-  """============================ MAIN PARSER ============================="""
-  parser_main = argparse.ArgumentParser(
-    formatter_class=argparse.RawTextHelpFormatter,
+def main() -> None:
+  # MAIN PARSER ================================================================
+  parser_main: ArgumentParser = ArgumentParser(
+    formatter_class=RawDescriptionHelpFormatter,
     prog='fedorafig',
-    description="", # TODO
-    epilog="" # TODO
+    description="CLI utility for Fedora Linux to configure your system from a JSON file.",
+    epilog="Find out more at `https://github.com/andrei-murashev/fedorafig`."
   )
 
   parser_main.add_argument(
     '-c', '--set-cfg-dir',
-    type=cfg.set_cfg_dir,
+    type=cmn.set_cfg_dir,
     action='store',
-    help="" # TODO
+    help="Changes the configuration directory."
   )
 
   parser_main.add_argument(
     '-q', '--quiet',
     action='store_true',
     default=False,
-    help="" # TODO
+    help="All output is suppressed."
   )
 
   parser_main.add_argument(
     '-v', '--verbose',
     action='store_true',
     default=False,
-    help="" # TODO
+    help="Reports more concrete processes."
   )
 
   subparsers = parser_main.add_subparsers(
-    title='', # TODO
-    description="" # TODO
+    title='commands',
+    description=""
   )
 
-  """============================ CHECK PARSER ============================"""
+  # CHECK PARSER ===============================================================
   parser_check = subparsers.add_parser(
     'check',
-    usage='', # TODO
-    help="" # TODO
+    usage="usage: fedorafig check [-h] [-k] [-c -s | -n] CFG_FILE",
+    help="Checks whether utility configurations are valid."
   )
   parser_check.set_defaults(func=check)
 
   parser_check.add_argument(
     'CFG_FILE',
+    type=str,
     action='store',
-    default=None,
-    help="" # TODO
+    help="The configuration file for the utility tying all configuration assets."
   )
 
   parser_check.add_argument(
     '-k', '--keep-checksums',
     action='store_true', 
     default=False,
-    help="" # TODO
+    help="Keeps all old checksums, which are usually deleted."
   )
   
   parser_check.add_argument(
     '-c', '--only-checksum',
     action='store_true',
     default=False,
-    help="" # TODO
+    help="Only calculates the checksum of CFG_FILE and saves it."
   )
 
   parser_check.add_argument(
     '-s', '--show-checksum',
     action='store_true',
     default=False,
-    help="" # TODO
+    help="Shows checksum of CFG_FILE after it is calculated."
   )
 
   parser_check.add_argument(
     '-n', '--no-checksum',
     action='store_true',
     default=False,
-    help="" # TODO
+    help="Skips calculating the checksum of CFG_FILE."
   )
 
-  """============================= RUN PARSER ============================="""
+  parser_check.add_argument(
+    '-i', '--interactive',
+    action='store_true',
+    default=False,
+    help="Will ask for confirmation when making changes to the file system."
+  )
+
+  # RUN PARSER =================================================================
   parser_run = subparsers.add_parser(
     'run',
-    usage='', # TODO
-    help="" # TODO
+    help="Applies all configurations to your system through the utility. \
+      When a flag is provided nothing is initially applied, but if a flag is used, a part of the configuration specified by the flag will be applied."
   )
   parser_run.set_defaults(func=run)
 
   parser_run.add_argument(
     'CFG_FILE',
     action='store',
-    default=None,
-    help="" # TODO
+    type=str,
+    help="The configuration file for the utility tying all configuration assets."
   )
 
   parser_run.add_argument(
-    '-f', '--files-include',
+    '-c', '--copies-include',
     action='store_true',
     default=False,
-    help="" # TODO
+    help="Includes the application of all file transfers."
   )
 
   parser_run.add_argument(
     '-p', '--pkgs-include',
     action='store_true',
     default=False,
-    help="" # TODO
+    help="Includes the application of all package installations."
   )
 
   parser_run.add_argument(
     '-r', '--repos-include',
     action='store_true',
     default=False,
-    help="" # TODO
+    help="Includes the application of all specified repository enabling."
   )
 
   parser_run.add_argument(
-    '-s', '--scripts-include',
+    '-pre', '--prerun-scripts-include',
     action='store_true',
     default=False,
-    help="" # TODO
+    help="Includes running all prerun scripts before anything else."
   )
 
-  """============================= EXEC PARSER ============================"""
+  parser_run.add_argument(
+    '-post', '--postrun-scripts-include',
+    action='store_true',
+    default=False,
+    help="Includes running all postrun scripts after everything else."
+  )
+
+  parser_run.add_argument(
+    '-i', '--interactive',
+    action='store_true',
+    default=False,
+    help="Will ask for confirmation when making changes to the file system."
+  )
+
+  # EXEC PARSER ================================================================
   parser_exec = subparsers.add_parser(
     'exec',
-    usage='', # TODO
-    help="" # TODO
+    help="Runs commonly-used scripts stored in the `common` folder, in the \
+      utility configuration folder."
   )
   parser_exec.set_defaults(func=exec)
 
   parser_exec.add_argument(
     'SCRIPT_NAME',
+    type=str,
     action='store',
-    default=None,
-    help="" # TODO
+    help="The name of the script you wish to run."
+  )
+  
+  # TODO: The base parser
+  # BASE PARSER ================================================================
+  parser_base = subparsers.add_parser(
+    'base',
+    help="Used to form and restore bases for each configuration."
   )
 
-  """========================== UNINSTALL PARSER =========================="""
+  # UNINSTALL PARSER ===========================================================
   parser_uninstall = subparsers.add_parser(
     'uninstall',
-    usage='', # TODO
-    help="" # TODO
+    help="Uninstalls the utility for you."
   )
   parser_uninstall.set_defaults(func=uninstall)
 
@@ -158,75 +180,66 @@ def main():
     '-s', '--with-state',
     action='store_true',
     default=False,
-    help="" # TODO
+    help="Also delete the state directory while uninstalling."
   )
 
   parser_uninstall.add_argument(
     '-c', '--with-config',
     action='store_true',
     default=False,
-    help="" # TODO
+    help="Also delete the configuration directory while uninstalling."
   )
 
-  """============================= PARSE OPTS ============================="""
-  try:
-    args = vars(parser_main.parse_args())
-  except errors.FedorafigException as e:
-    raise
+  # PARSE OPTIONS ==============================================================
+  try: args: cmn.ArgsDict = \
+    vars(parser_main.parse_args())
+  except err.FedorafigExc as e: raise
+  except Exception as e: raise err.LogExc(e)
   except SystemExit as e:
     if e.code == 0: return
-    raise errors.FedorafigException("Incorrect usage", exc=e)
-  except Exception as e:
-    errors.log(e); print(help.REPORT_ISSUE)
+    raise err.FedorafigExc("Incorrect usage", exc=e)
 
-  if not any(opt is not None for opt in args.values()):
-    raise errors.FedorafigException("No arguments")
+  if not any(opt for opt in args.values()):
+    raise err.FedorafigExc("No arguments")
   
-  if 'func' in args and args['func'] is not None: args['func'](args)
+  if 'func' in args and args['func'] is not None:
+    from typing import Callable
+    if callable(args['func']): func: Callable = args['func'];
+    func(args)
+
+# MATCH SUBPARSERS =============================================================
+def check(args: cmn.ArgsDict) -> None:
+  from check import check
+  try: check(args)
+  except err.FedorafigExc: pass
+  except (Exception, SystemExit) as e: raise err.LogExc(e)
+
+def run(args: cmn.ArgsDict) -> None:
+  from run import run
+  try: run(args)
+  except err.FedorafigExc: pass
+  except (Exception, SystemExit) as e: raise err.LogExc(e)
+
+def exec(args: cmn.ArgsDict) -> None:
+  fpath: str = path.join(cmn.COMMON_PATH, str(args['SCRIPT_NAME']))
+  if not path.isfile(fpath): raise err.FedorafigExc(
+    "script not found", fpath)
+  cmn.shell('chmod u+x', fpath); cmn.shell(fpath)
 
 
-def check(args):
-  from check import Check
-  try: Check(args)
-  except errors.FedorafigException as e: raise
-  except (Exception, SystemExit) as e: errors.log(e); print(help.REPORT_ISSUE)
-
-
-def run(args):
-  from run import Run
-  try: Run(args)
-  except errors.FedorafigException as e: raise
-  except (Exception, SystemExit) as e: errors.log(e); print(help.REPORT_ISSUE)
-
-
-def exec(args):
-  name = args['SCRIPT_NAME']
-  path = os.path.join(cfg.COMMON_DIR, name)
-  if not os.path.isfile(path): raise errors.FedorafigException(
-    "script not found", path)
-  
-  from subprocess import run, CalledProcessError
-  run(['chmod', 'u+x', path], check=True)
-  try: run([path], check=True)
-  except CalledProcessError as e: print(e)
-
-
-def uninstall(args):
-  from subprocess import run
-
-  paths = [cfg.PROG_DIR, os.path.join(cfg.EXEC_DIR, 'fedorafig')]
+def uninstall(args: cmn.ArgsDict) -> None:
+  apaths: list[str] = [cmn.PROG_DIR, path.join(cmn.EXEC_DIR, 'fedorafig')]
   if args['with_state']:
-    if os.path.isdir(cfg.STATE_DIR): paths.append(cfg.STATE_DIR)
+    if path.isdir(cmn.STATE_DIR): apaths.append(cmn.STATE_DIR)
   if args['with_config']:
-    if os.path.isdir(cfg.CFG_DIR): paths.append(cfg.CFG_DIR)
+    if path.isdir(cmn.CFG.path): apaths.append(cmn.CFG.path)
 
   print("Removing the following paths:")
-  for path in paths:
-    print(' ', path)
-
-  ans = input("Are you sure you want to proceed [y/N]: ")
+  for apath in apaths:
+    print(' ', apath)
+  ans: str = input("Are you sure you want to proceed? [y/N]: ")
   if ans == 'Y' or ans == 'y':
-    for path in paths: run(['rm', '-rf', path], check=True)
+    for apath in apaths: cmn.shell('rm -rf', apath)
 
 
 if __name__ == '__main__':

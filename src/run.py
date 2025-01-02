@@ -1,108 +1,84 @@
+# IMPORTS ======================================================================
 # DEPENDENCY: dnf-plugins-core
+from os import path; from typing import *
+import cmn, err
+REPOS_DONE = False
 
-# System imports
-import os
-import json
-import threading
-import subprocess
+# MAIN CONFIGURATION APPLICATION FUNCTION ======================================
+def run(args: cmn.ArgsDict) -> None:
+  from check import calc_checksum, extract_entries
+  fpath: str = path.join(cmn.CFG.path, str(args['CFG_FILE']))
 
-# Local imports
-import cfg
-import errors
+  checksum_old: str
+  checksum_cur: str = calc_checksum(fpath, cmn.COPIES_PATH,
+    cmn.REPOS_PATH, cmn.SCRIPTS_PATH, cmn.COMMON_PATH)
+  checksum_path: str = path.join(
+    cmn.STATE_DIR, f'{path.basename(fpath)}.sha256')
+  if path.isfile(checksum_path):
+    with open(checksum_path, 'r') as fh: checksum_old = fh.readline().strip()
+  if not (path.isfile(checksum_path) and checksum_cur == checksum_old):
+    inter: bool = bool(args['interactive'])
+    if not inter: cmn.shell('fedorafig check', fpath, no_sudo=True)
+    else: cmn.shell('fedorafig check -i', fpath, no_sudo=True)
 
-class Run():
-  def __init__(self, args):
-    try: subprocess.run(['sudo', '-v'], check=True)
-    except subprocess.CalledProcessError as e: raise errors.FedorafigException(
-      "sudo timeout")
-    sudo_refresh = threading.Thread(target=cfg.sudo_refresh, daemon=True)
-    sudo_refresh.start()
+  with open(fpath, 'r') as fh: from json5 import load; data = load(fh)
 
-    self.args = args
-    self.file = args['CFG_FILE']
-    self.repos_done = False
+  entries = extract_entries(data)
+  cmn.collect_entries(entries)
 
-    with open(os.path.join(cfg.CFG_DIR, self.file), 'r') as fh:
-      self.data = json.load(fh)
+  flags = [args['repos_include'], args['pkgs_include'], args['copies_include'], 
+    args['prerun_scripts_include'], args['postrun_scripts_include']]
 
-    from check import Check
-    self.checksum = Check.calc_checksum(self.file)
+  if True not in flags:
+    prerun_scripts_do(); repos_do(); pkgs_do()
+    copies_do(); postrun_scripts_do()
+  if args['prerun_scripts_include']: prerun_scripts_do()
+  if args['repos_include']: repos_do()
+  if args['pkgs_include']: pkgs_do()
+  if args['copies_include']: copies_do()
+  if args['postrun_scripts_include']: postrun_scripts_do()
 
-    # Compare checksums
-    checksum_old = None
-    checksum_path = os.path.join(cfg.STATE_DIR, f'{self.file}.sha256')
+def repos_do() -> None:
+  cmn.shell('mkdir -p /etc/yum.repos.d/')
+  cmn.shell('cp -rf', cmn.REPOS_PATH, '/etc/yum.repos.d/')
+  
+  all_repos_enable: bool = False
+  repos_enable: List[str] = ['--set-enabled']
+  for entry in cmn.ENTRIES:
+    if '*' in entry.repos and not entry.pkgs: all_repos_enable = True; break
+    elif not entry.pkgs: repos_enable += entry.repos
+  cmn.shell('dnf config-manager', *repos_enable)
+  if all_repos_enable:
+    cmn.shell('dnf config-manager --set-enabled', *cmn.REPOLIST)
 
-    if os.path.isfile(checksum_path):
-      with open(checksum_path, 'r') as fh: checksum_old = fh.readline().strip()
-
-    if not (os.path.isfile(checksum_path) and self.checksum == checksum_old):
-      subprocess.run(['fedorafig', 'check', self.file], check=True)
-
-    Check(args)
-
-    # Parse flags
-    flags = [
-      self.args['repos_include'],
-      self.args['pkgs_include'],
-      self.args['files_include'],
-      self.args['scripts_include']
-    ]
-
-    if True not in flags:
-      self.__repos_do()
-      self.__pkgs_do()
-      self.__files_do()
-      self.__scripts_do()
-    if self.args['repos_include']: self.__repos_do()
-    if self.args['pkgs_include']: self.__pkgs_do()
-    if self.args['files_include']: self.__files_do()
-    if self.args['scripts_include']: self.__scripts_do()
+  REPOS_DONE = True
 
 
-  def __repos_do(self):
-    repo_files = os.path.join(cfg.REPOS_DIR, '.')
-    try: subprocess.run(['dnf', 'config-manager', '--version'], check=True)
-    except subprocess.CalledProcessError: raise errors.FedorafigException(
-      "'config-manager' not found or has an issue")
-    subprocess.run(
-      ['sudo', 'cp', '-rf', repo_files, '/etc/yum.repos.d/'], check=True)
-
-    enable_all = False
-    for repo, pkg in cfg.REPOS_N_PKGS:
-      if repo == 'all' and not pkg: enable_all = True; break
-      elif repo and not pkg: subprocess.run([
-        'sudo', 'dnf', 'config-manager', '--set-enabled', repo], check=True)
-
-    if enable_all:
-      repos_cmd = ['--set-enabled']
-      for repo, pkg in cfg.REPOS_N_PKGS:
-        if repo == 'all': continue
-        elif repo and not pkg: repos_cmd += [repo]
-      subprocess.run(['sudo', 'dnf', 'config-manager', *repos_cmd], check=True)
-
-    self.repos_done = True
+def pkgs_do() -> None:
+  if not REPOS_DONE: repos_do()
+  for entry in cmn.ENTRIES:
+    if entry.repos and '*' in entry.pkgs:
+      cmn.shell('dnf install -y --enablerepo=*', *entry.pkgs)
+    elif entry.repos and entry.pkgs:
+      cmn.shell(f'dnf install -y', *[f'--enablerepo={repo}'
+        for repo in entry.repos], *entry.pkgs)
+      # NOTE: This does not disable other repos
+    elif not entry.repos and entry.pkgs:
+      cmn.shell('dnf install -y', *entry.pkgs)
 
 
-  def __pkgs_do(self):
-    if not self.repos_done: self.__repos_do()
-    for repo, pkg in cfg.REPOS_N_PKGS:
-      if repo == 'all' and pkg: subprocess.run([
-        'sudo', 'dnf', 'install', '--enablerepo=*', pkg, '-y'], check=True)
-      elif repo and pkg: subprocess.run([
-        'sudo', 'dnf', 'install', f'--enablerepo={repo}', pkg, '-y'],
-        check=True)
-        # NOTE: This does not disable other repos.
-      elif pkg and not repo: subprocess.run([
-        'sudo', 'dnf', 'install', pkg, '-y'], check=True)
+def copies_do() -> None:
+  for entry in cmn.ENTRIES:
+    for copy_paths in entry.copies:
+      cmn.shell('mkdir -p', *copy_paths[1:])
+      cmn.shell('cp -rf', *copy_paths)
 
+def prerun_scripts_do() -> None:
+  for entry in cmn.ENTRIES:
+    for script in entry.prerun_scripts:
+      cmn.shell('chmod u+x', script); cmn.shell(script)
 
-  def __files_do(self):
-    for syspath, cfgpath in cfg.SYS_N_CFG_DIRS:
-      cfgpath_items = os.path.join(cfgpath, '.')
-      subprocess.run(['sudo', 'cp', '-rf', cfgpath_items, syspath], check=True)
-
-
-  def __scripts_do(self):
-    for script in cfg.SCRIPT_FILES:
-      subprocess.run(['sudo', 'chmod', 'u+x', script], check=True)
-      subprocess.run(['sudo', script], check=True)
+def postrun_scripts_do() -> None:
+  for entry in cmn.ENTRIES:
+    for script in entry.postrun_scripts:
+      cmn.shell('chmod u+x', script); cmn.shell(script)

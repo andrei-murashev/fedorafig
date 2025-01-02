@@ -3,6 +3,7 @@ FROM fedora:40
 # Installing required packages.
 RUN dnf install -y \
   dnf-plugins-core \
+  python3-pip \
   python3 \
   ncurses \
   neovim \
@@ -14,20 +15,21 @@ RUN \
   useradd -m user             && \
   echo 'user:sudo' | chpasswd && \
   usermod -aG wheel user
-USER user
+
 WORKDIR /home/user
 ENV USER=user
 ENV HOME=/home/user
+ENV PATH=/usr/local/bin:$PATH
 ENV FEDORAFIG_CFG_PATH=/home/user/.config/fedorafig
-ENV FEDORAFIG_SRC_PATH=/home/user/.local/bin/fedorafig
 
-
-# Install `fedorafig`
+# Install fedorafig
+RUN pip install json5
 COPY . $HOME/fedorafig
-COPY test/cfgs/. $FEDORAFIG_CFG_PATH
-RUN echo 'sudo' | sudo -S chown -R user:user $HOME
+COPY test/cfgs/cfg2/. $FEDORAFIG_CFG_PATH
+RUN export PATH="/usr/local/bin:$PATH"
 RUN cd fedorafig && chmod u+x install.sh && ./install.sh
 RUN rm -rf fedorafig
 
-# Runs tests.
+# Run tests
+USER user
 CMD ["bash"]

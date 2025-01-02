@@ -1,7 +1,7 @@
-# fedorafig v0.3.0-alpha
+# fedorafig v0.3.1-alpha
 <img
   alt="version static badge"
-  src="https://img.shields.io/badge/version-0.3.0-blue"
+  src="https://img.shields.io/badge/version-0.3.1-blue"
   height=25>
 <img
   alt="unlicense license static badge"
@@ -39,216 +39,110 @@ This is a guide on how to use the utility with concrete examples.
 Ensure `$CFG_DIR`, typically `~/.config/fedorafig/` looks like this:
 ```bash
 ~/.config/fedorafig
-├── configs     # Configuration files/directories for `cfgpath`.
+├── common                      # Holds commonly-used scripts.
+│   ├── hi.sh
+│   └── ...
+├── copies                      # Holds files you want to copy somewhere else.
+│   ├── neofetch
+│   │   └── config.conf
 │   └── ...
-├── repos       # `.repo` files for repositories.
-│   └── ...
-├── scripts     # Scripts for `script` subentries.
-│   └── ...
-├── cfg1.json   # Main JSON configuration file.
-└── ...         # Other JSON configuration files.
+├── repos                       # Contains .repo files.
+│   ├── fedora.repo
+│   ├── fedora-updates.repo
+│   └── ...
+└── scripts                     # Contains scripts to be run by fedorafig.
+    ├── hello.sh
+    └── ...
 ```
 
-### Configuration file entries and subentries
+### Configuration file
+The following example should give you a good idea of how to write your configuration files. The `fedorafig` argument for this is `CFG_FILE`
+```json5
+{
+  // Run scripts before and after config application
+  work_CLIs: {
+    prerun_scripts: ['hello.sh'],
+    postrun_scripts: ['bye.sh'],
+    repos: ['*'],
 
-**Copy files**
-```json
-"entry-can-have-any-name": {
-  "syspath": "cfgs/intended/dir/path/"
-  "_COMMENT": "Usually a directory in ~/.config/ related to the package"
-  "cfgpath": "cfgs/in/cfg/dir/or/file"
-  "_COMMENT": "Usually ~/.config/fedorafig/configs/"
+    pkgs: [
+      'git',
+      'tmux',
+      'htop',
+    ],
+  },
+
+  // With copying configuration files for neofetch and lolcat.
+  fun_CLIs: {
+    postrun_scripts: ['neofetch.sh'],
+
+    copies: [
+      ['neofetch/.', '~/.config/neofetch/.'],
+      ['lolcat-wrapper.sh', '~/.local/bin/lolcat-wrapper'],
+    ],
+
+    pkgs: [
+      'neofetch',
+      'cmatrix',
+      'lolcat',
+    ],
+  },
+
+  // Installs package, temporarily enabled repos.
+  comms: {
+    repos: ['rpmfusion-free'],
+    pkgs: ['telegram-desktop'],
+  },
+  
+  // Permanently enables repos
+  just_repos: {
+    repos: ['rpmfusion-free-updates', 'rpmsphere-caution']
+  },
 }
 ```
-Copies files from `cfgpath` (path relative to `configs/`) to `syspath`
-(evaluated absolute path).
+### Using `fedorafig` flags
++ `check`   Checks whether utility configurations are valid.
++ `run`     Applies all configurations to your system through the
+            utility. When a flag is provided nothing is initially
+            applied, but if a flag is used, a part of the configuration
+            specified by the flag will be applied.
++ `exec`    Runs commonly-used scripts stored in the `common` folder, in
+            the utility configuration folder.
++ `uninstall`   Uninstalls the utility for you.
 
-**Install a package**
-```json
-"htop": {
-  "pkg": "htop"
-}
-```
-Installs `pkg`.
+### Using `fedorafig check`
+Examples: `fedorafig check cfg.json5`, `fedorafig check cfg.json5 -c -s` \
+Options:
++ `-k`, `--keep-checksums`  Keeps all old checksums, which are usually deleted.
++ `-c`, `--only-checksum`   Only calculates the checksum of `CFG_FILE`
+                            and saves it.
++ `-s`, `--show-checksum`   Shows checksum of `CFG_FILE` after it is calculated.
++ `-n`, `--no-checksum`     Skips calculating the checksum of `CFG_FILE`.
++ `-i`, `--interactive`     Will ask for confirmation when making changes to the
+                            file system.
 
-**Activate repository**
-```json
-"just-repo-entry": {
-  "repo": "my-repo"
-}
-```
-Adds a `.repo` file from `repos/`.
+### Using `fedorafig run`
+Examples: `fedorafig run cfg.json5`, `fedorafig run cfg.json5 -i -p -post`
+Options:
++ `-c`, `--copies-include`  Includes the application of all file transfers.
++ `-p`, `--pkgs-include`    Includes the application of all package
+                            installations.
++ `-r`, `--repos-include`   Includes the application of all specified repository
+                            enabling.
++ `-pre`, `--prerun-scripts-include`
+                    Includes running all prerun scripts before anything else.
++ `-post`, `--postrun-scripts-include`
+                    Includes running all postrun scripts after everything else.
++ `-i`, `--interactive`     Will ask for confirmation when making changes to the
+                            file system.
 
-**Execute a script (happens last of all subentries)**
-```json
-"hello": {
-  "script": "hello.sh"
-}
-```
-Executes a script from `$CFG_DIR/scripts/`.
 
-**Install and configured the package**
-```json
-"neofetch": {
-  "syspath": "~/.config/neofetch",
-  "cfgpath": "neofetch/",
-  "pkg": "neofetch"
-}
-```
-Copies files and installs `pkg`, which is in this case `neofetch`.
+## Features, detailed
 
-**Install package from specific repository**
-```json
-"telegram": {
-  "pkg": "telegram",
-  "repo": "rpmfusion-free"
-}
-```
-Installs `pkg` from `repo`.
-
-**Activate all repositories**
-```json
-"all-repos": {
-  "repo": "all"
-}
-```
-Actvates all repositories specified in `.repo` files in `$CFG_DIR/repos/`.
-
-**Comments**\
-All values with the key `"_COMMENT"` are ignored.
-
-### Workflow
-Follow these steps to maintain a functional setup.
-
-**Prepare Directory**: Populate `configs/`, `repos/`, and `scripts/`. \
-**Create a JSON configuration file**: Write JSON entries for tasks that the
-utility will execute. \
-**Run `check`**: Validate the configuration.
-
-## Features
-### Set utility configuration path
-By default, the `fedorafig` configuration directory is set to `~/.config/
-fedorafig`. If you wish to change it to `$CFG_DIR`, first ensure that the
-directory exists, then pass it to the utility with `-f` or `--new-cfg-dir`.
-```bash
-mkdir -p $CFG_DIR
-fedorafig -f $CFG_DIR
-```
-
-Example:
-```bash
-mkdir -p ~/.fedorafig
-fedorafig -f ~/.fedorafig
-```
-
-### Checking the configuration
-`check` looks at your configuration specified for the OS in a JSON file. To
-check the OS configuration `$CFG_FILE`, a JSON file, it must located with
-`$CFG_DIR`, and for `check` to run successfully, the following must be
-satisfied:
-+ In `$CFG_DIR`, there must be directories named `configs`, `repos`, and
-`scripts`.
-+ For each entry in `$CFG_FILE`, `syspath` and `cfgpath` must exist together.
-+ In `$CFG_FILE`, a specified `repo` subentry must exist in `$CFG_DIR/repos`,
-and be valid `.repo` file, ending in `.repo` in its name.
-+ In `$CFG_FILE`, all `package` subentries must exist in at least one repository
-specified in all `repo` subentries that are not accompanied by a `package`
-subentry (when `package` and `repo` are not in the same entry). If `package` and
-`repo` are found in the same entry, then that `package` is only required to
-exist in that `repo`.
-+ In `$CFG_FILE`, all `script` subentries must exist in `$CFG_DIR/scripts`, but
-not necessarily be valid. This is up to the user to ensure.
-
-Note this does not prevent all runtime errors, as the scripts specified may have
-raise runtime errors. The rest of the OS configuration will not raise runtime
-errors if `check` is successful.
-
-Given that your `$CFG_DIR` looks like this:
-```bash
-$CFG_DIR
-├── configs
-│   └── ...
-├── repos
-│   └── ...
-├── scripts
-│   └── ...
-├── $CFG_FILE
-└── ...
-```
-To run a check of `$CFG_FILE`, simply execute:
-```bash
-fedorafig check $CFG_FILE
-```
-Example:
-```bash
-~/.fedorafig
-├── configs
-├── repos
-├── scripts
-├── cfg1.json
-└── cfg2.json
-```
-```bash
-fedorafig check cfg1.json
-```
-
-You can have as many JSON files to configure your OS as you want. Note that
-checksum are used to check if anything has changed to see whether check will
-need to be rerun. The following flags can be used for some extra options:
-+ `-c` or `--only-checksum`: Only calculate the checksum.
-+ `-s` or `--show-checksum`: Show checksum after its calculated.
-+ `-n` or `--no-checksum`: Does not calculate the potentially new checksum.
-
-### Applying the configuration
-If you want to apply the configurations specified in the file `cfg1.json` and
-your directory structure looks like this:
-```bash
-~/.fedorafig
-├── configs
-├── repos
-├── scripts
-├── cfg1.json
-└── cfg2.json
-```
-
-Simply run: `fedorafig run cfg1.json` \
-There are also options to apply only parts of your configuration, none of which
-are mutually exclusive. The code for these is also run for each flag is also run
-in this order, descending:
-+ `-r` or `--repos-include`: Copies all repos to `/etc/yum/repos.d/` that aren't
-accompanied by a `pkg` subentry, and enables them.
-+ `-p` or `--pkgs-include`: Installs all packages specified in the 
-configuration, and if there are `pkg` subentries without `repo` subentries, then
-the flag `-r` is automatically applied.
-+ `-f` or `--files-include`: Copies the contents in `cfgpath` to `syspath`. The
-directory specified in the `cfgpath` subentry is not itself copied, only its
-contents are.
-+ `-s` or `--script-include`: For every single specified script, it enables
-execution permissions for your user and executes them.
-
-Using these flags doesn't "include" anything extra. It simply means that you
-start with nothing included in your application of the configuration when you
-start using the flags, and then the flags include specifically what you want.
-
-### Access commonly-used scripts
-If your script is called `$SCRIPT`, make sure it resides in `$CFG_DIR/common/`.
-Then, running `fedorafig exec $SCRIPT` will run that script.
-
-### Uninstalling
-Simply run: `fedorafig uninstall` \
-Optionally you can pass the flags `-c` or `--with-config` to also remove the
-current configuration directory of the utility, and the flags `-s` or 
-`--with-state` to also remove the state directory.
 
 ## Coming features
-### Support for multiple subentries
-+ `repo` subentries: Multiple `repo` subentries will indicate that the listed
-repos are for successive fallback.
-+ `pkgs` subentries: Multiple `pkgs` are installed. If even one repository is
-specified, the utility attempts to install all of them from it.
-+ `syspath` and `cfgpath` subentries: All contents in the `cfgpath` subentries
-are copied to all `syspath` subentries.
-+ `script` subentries: Just runs all the scripts specified in the entry in order.
+### Saving preconfigured "base"
+Every configuration file will be accompanied by a pre- and post-configuration base, which are just lists of packages that were and are installed on the system. You will be able to restore to these bases.
 
 ### Silent output
 No output is printed to `stdout` when the utility is running. Can be specified
@@ -257,7 +151,3 @@ with `-q` or `--quiet`
 ### Verbose output
 Very detailed output is printed to `stdout` when the utility is running. Can be
 specified with `-v` or `--verbose`
-
-### Switch to JSON5 configuration files
-Configuration files will be parsed from files of the JSON5 format, a more user-
-friendly version of JSON. This will mark the 1.0.0 release.
