@@ -1,186 +1,123 @@
-# TODO: See where I can leave out `text=True` in `sp`
+# IMPORTS ======================================================================
+from os import path; from typing import *
+from subprocess import PIPE; import cmn, err
 
-# System imports
-from os import path
-from typing import *
-import subprocess as sp
-import sys, glob
+# CONFIGURATION CHECK ==========================================================
+def check(args: cmn.ArgsDict) -> None:
+  fpath: str = path.join(cmn.CFG.path, str(args['CFG_FILE']))
+  if not path.isfile(fpath): raise err.FedorafigExc("File not found", fpath)
+  with open(fpath, 'r') as fh:
+    from json5 import load
+    try: data: Dict[str, Any] = load(fh)
+    except Exception as e: raise err.FedorafigExc(
+      "JSON5 parsing error", exc=e)
 
-# Package imports
-import json5
+  checksum_yes: Dict[str, bool] \
+    = {key: bool(args[key]) for key in ['only_checksum', 'show_checksum']}
+  checksum_no: Dict[str, bool]  \
+    = {key: bool(args[key]) for key in ['no_checksum']}
+  tmp_args: List[str] \
+    = [key for key, val in (checksum_yes | checksum_no).items() if val]
 
-# Local imports
-import cmn, err
+  dict_disj: Callable[[Dict[str, bool]], bool] \
+    = lambda bool_dict: True in bool_dict.values()
+  if dict_disj(checksum_yes) and dict_disj(checksum_no):
+    tmp_args = [f'--{arg.replace('_', '-')}' for arg in tmp_args]
+    raise err.FedorafigExc("Confliction options", *tmp_args)
 
-class Check():
-  def __init__(self, args) -> None:
-    self.args: Dict[str, cmn.ArgsDict] = args
-    self.fname: str = args['CFG_FILE']
-    self.checksum: str
+  if not args['keep_checksums']: delete_checksums()
+  if not args['only_checksum']:
+    entries: List[cmn.Entry.SelfType] = extract_entries(data)
+    cmn.collect_entries(entries)
+    entries_check(cmn.ENTRIES)
+  if not args['no_checksum']:
+    checksum = calc_checksum(fpath, cmn.COPIES_PATH,
+      cmn.REPOS_PATH, cmn.SCRIPTS_PATH, cmn.COMMON_PATH)
+    fpath = path.join(cmn.STATE_DIR, f'{path.basename(fpath)}.sha256')
+    with open(fpath, 'w') as fh: fh.write(checksum)
+  if args['show_checksum']: print(
+    f"{path.basename(fpath)} checksum: {checksum}")
 
-    fpath = path.join(cmn.CFG.path, self.fname)
-    if not path.isfile(fpath): raise err.FedorafigExc(
-      "File not found", fpath)
-    with open(path.join(cmn.CFG.path, self.fname), 'r') as fh:
-      try: self.data: dict[str, Any] = json5.load(fh)
-      except Exception as e: raise err.FedorafigExc(
-        "JSON5 parsing error", exc=e)
+# JSON5 TO ENTRIES LIST ========================================================
+def extract_entries(data: Dict[str, Any]) -> List[cmn.Entry.SelfType]:
+  entries: List[cmn.Entry.SelfType] = []
+  for entry in data.values():
+    if not isinstance(entry, Dict): raise err.FedorafigExc(
+      "Entry is of an incompatible type", type(entry))
+    for key in entry.keys():
+      if not isinstance(key, str): raise err.FedorafigExc(
+        "Entry key is not a string", "Entry type:", {type(key)})
 
-    # if sys.argv[1] == 'run': self.__check_syntax(collect_only=True); return
+    for val in entry.values():
+      if not isinstance(val, List): raise err.FedorafigExc(
+        "Entry value is not a list is not a list", "Value type:", {type(val)})
 
-    checksum_yes: Dict[str, bool] \
-      = {key: args[key] for key in ['only_checksum', 'show_checksum']}
-    checksum_no: Dict[str, bool]  \
-      = {key: args[key] for key in ['no_checksum']}
-    tmp_args: List[str] \
-      = [key for key, val in (checksum_yes | checksum_no).items() if val]
+      for elem in val:
+        if isinstance(elem, List):
+          elem_list = elem
+          if all(isinstance(elem, str) for elem in elem_list): continue
+        elif not isinstance(elem, str): raise err.FedorafigExc(
+          "Entry value element is not a string", "Value type:", type(val))
 
-    dict_disj: Callable[[Dict[str, bool]], bool] \
-      = lambda bool_dict: True in bool_dict.values()
-    if dict_disj(checksum_yes) and dict_disj(checksum_no):
-      tmp_args = [f'--{arg.replace('_', '-')}' for arg in tmp_args]
-      raise err.FedorafigExc("Confliction options", *tmp_args)
+    entries.append(entry)
+  return entries
 
-    if not args['keep_checksums']:
-      self.__delete_checksums()
-    if not args['only_checksum']:
-      entries: List[cmn.Entry.SelfType] = self.__check_types()
-      cmn.collect_entries(entries)
-      self.check_syntax(cmn.ENTRIES, interactive=bool(self.args['interactive']))
-    if not args['no_checksum']:
-      self.checksum = self.calc_checksum(path.join(cmn.CFG.path, self.fname),
-        cmn.COPIES_PATH, cmn.REPOS_PATH, cmn.SCRIPTS_PATH, cmn.COMMON_PATH)
-      self.__save_checksum()
-    if args['show_checksum']:
-      print(f"{self.fname} checksum: {self.checksum}")
+# CHECK ENTRY SYNTAX AND PROPERTY EXISTENCE ====================================
+def entries_check(entries: List[cmn.Entry]) -> None:
+  # NOTE: uncomment later cmn.shell(f'dnf --setopt=reposdir={cmn.REPOS_PATH} --enablerepo=* makecache')
 
-  
-  def __check_types(self) -> List[cmn.Entry.SelfType]:
-    entries: List[cmn.Entry.SelfType] = []
-    for entry in self.data.values():
-      if not isinstance(entry, Dict): raise err.FedorafigExc(
-        "Entry is of an incompatible type", type(entry))
-      for key in entry.keys():
-        if not isinstance(key, str): raise err.FedorafigExc(
-          "Entry key is not a string", "Entry type:", {type(key)})
+  repos_n_pkgs_pairs: List[Tuple[List[str], List[str]]] = []
+  script_paths: List[str] = []; copies: List[List[str]] = []
+  for entry in entries:
+    repos_n_pkgs_pairs += [(entry.repos, entry.pkgs)]
+    script_paths += entry.prerun_scripts + entry.postrun_scripts
+    copies += entry.copies
 
-      for val in entry.values():
-        if not isinstance(val, List): raise err.FedorafigExc(
-          "Entry value is not a list is not a list", "Value type:", {type(val)})
+  for repos, pkgs in (pair for pair in repos_n_pkgs_pairs):
+    print("REPOS AND PKGS:", repos, pkgs)
+    for repo in repos:
+      if repo not in cmn.REPOLIST and repo != '*':
+        print("matched case 1")
+        raise err.FedorafigExc(
+        "Repo not found", repo)
+    if pkgs and not repos:
+      cmn.shell(f'dnf --setopt=reposdir={cmn.REPOS_PATH}',
+        'repoquery', ' '.join(pkgs))
+      print("matched case 2")
+    if pkgs and repos:
+      repo_enables: List[str] = [f'--enablerepo={repo}' for repo in repos]
+      cmn.shell(f'dnf --setopt=reposdir={cmn.REPOS_PATH}',
+        ' '.join(repo_enables), 'repoquery', ' '.join(pkgs))
+      print("matched case 3")
 
-        for elem in val:
-          if isinstance(elem, List):
-            elem_list = elem
-            if all(isinstance(elem, str) for elem in elem_list): continue
-          elif not isinstance(elem, str): raise err.FedorafigExc(
-            "Entry value element is not a string", "Value type:", type(val))
-
-      entries.append(entry)
-    return entries
-
-
-  @staticmethod
-  def check_syntax(entries: List[cmn.Entry], interactive: bool = True) -> None:
-    cmd: List[str]; out: sp.CompletedProcess
-
-    cmd = ['dnf', f'--setopt=reposdir={cmn.REPOS_PATH}',
-      '--enablerepo=*', 'makecache']
-    try: out = sp.run(cmd, check=True, stderr=sp.PIPE)
-    except sp.CalledProcessError as e: raise err.FedorafigExc(e.stderr)
-
-    cmd = ['dnf', f'--setopt=reposdir={cmn.REPOS_PATH}', 'repolist', 'all']
-    print(' '.join(cmd))
-    try: out = sp.run(cmd, text=True, check=True, stdout=sp.PIPE)
-    except sp.CalledProcessError as e: raise err.FedorafigExc(e.stderr)
-
-    cmd = ['awk', '{print $1}']
-    out = sp.run(cmd, text=True, input=out.stdout, check=True, stdout=sp.PIPE)
-    cmd = ['tail', '-n', '+2']
-    out = sp.run(cmd, text=True, input=out.stdout, check=True, stdout=sp.PIPE)
-    if not (repolist := out.stdout.splitlines()): raise err.FedorafigExc(
-      "No repos found")
-    print(repolist)
-
-    repos_n_pkgs_pairs: List[Tuple[List[str], List[str]]] = []
-    script_paths: List[str] = []; copy_paths: List[str] = []
-    for entry in entries:
-      repos_n_pkgs_pairs += [(entry.repos, entry.pkgs)]
-      script_paths += entry.prerun_scripts + entry.postrun_scripts
-      copy_paths += [dpath for dpaths in entry.copies for dpath in dpaths]
-
-    for repos, pkgs in (pair for pair in repos_n_pkgs_pairs):
-      for repo in repos:
-        if repo not in repolist and repo != '*': raise err.FedorafigExc(
-          "Repo not found", repo)
-      if pkgs and not repos:
-        cmd = ['dnf', f'--setopt=reposdir={cmn.REPOS_PATH}', 'repoquery', *pkgs]
-      if pkgs and repos:
-        repo_enables: List[str] = [f'--enablerepo={repo}' for repo in repos]
-        print(repo_enables)
-        cmd = ['dnf', f'--setopt=reposdir={cmn.REPOS_PATH}', *repo_enables, 
-          'repoquery', *pkgs]
-      try: sp.run(cmd, text=True, check=True, stderr=sp.PIPE) if cmd else None
-      except sp.CalledProcessError as e: raise err.FedorafigExc(e.stderr)
-
-    for script_path in script_paths:
-      if not path.isfile(script_path): raise err.FedorafigExc(
-        "File not found", script_path)
-
+  for copy_paths in copies:
     if not path.exists(copy_paths[0]): raise err.FedorafigExc(
-      "Copy source does not exist", copy_paths[0])
-    for copy_path in copy_paths[1:]:
-      dir: str = copy_path[:copy_path.rfind('/')]
-      cmd = ['mkdir', '-p', dir]
-      
-      if copy_path.startswith(cmn.CFG.path) and not path.exists(copy_path):
-        raise err.FedorafigExc("Path not found", copy_path)
+      "Path not found", script_paths[0])
 
-      elif not path.isdir(dir) and interactive:
-        ans = input(f"Create directory {dir} [y/N]: ")
-        from itertools import product
-        opts: List[Tuple[str, str]] = [('y', 'Y'), ('e', 'E'), ('s', 'S')]
-        if ans in [''.join(comb) for comb in product(*opts)] + ['y', 'Y']:
-          try: sp.run(cmd, check=True, stderr=sp.PIPE)
-          except sp.CalledProcessError as e: raise err.FedorafigExc(e.stderr)
-        else: continue
-      elif not(path.isdir(dir) or interactive):
-        try: sp.run(cmd, check=True, stderr=sp.PIPE)
-        except sp.CalledProcessError as e: raise err.FedorafigExc(e.stderr)
+# JSON5 TO ENTRIES LIST ========================================================
+def delete_checksums() -> None:
+  from glob import glob
+  matches = glob(path.join(cmn.CFG.path, '*.json5'))
+  for match in matches: cmn.shell(f'rm -rf {match}.sha256 || True')
 
+# CALCULATE CHECKSUM FOR DIR OR FILE ===========================================
+def calc_checksum(*apaths: str) -> str:
+  import hashlib; chunk: bytes
+  hasher: hashlib._Hash = hashlib.sha256()
+  
+  for apath in apaths:
+    if path.isfile(apath):
+      with open(apath, 'rb') as fh:
+        while chunk := fh.read(8192): hasher.update(chunk)
 
-  def __delete_checksums(self) -> None:
-    matches = glob.glob(path.join(cmn.STATE_DIR, '*.sha256'))
-    for match in matches:
-      from os import remove
-      try: remove(match)
-      except Exception as e: raise err.FedorafigExc(
-        "Unable to remove checksum file", match, exc=e)
-
-
-  def __save_checksum(self) -> None:
-    fname = f'{self.fname}.sha256'
-    fpath = path.join(cmn.STATE_DIR, fname)
-    with open(fpath, 'w') as fh: fh.write(self.checksum)
-
-
-  @staticmethod
-  def calc_checksum(*apaths: str) -> str:
-    import hashlib; chunk: bytes
-    hasher: hashlib._Hash = hashlib.sha256()
+    elif path.isdir(apath):
+      from os import walk
+      for root, _, files in walk(apath):
+        for file in sorted(files):
+          fpath: str = path.join(root, file)
+          with open(fpath, 'rb') as fh:
+            while chunk := fh.read(8192): hasher.update(chunk)
     
-    for apath in apaths:
-      if path.isfile(apath):
-        with open(apath, 'rb') as fh:
-          while chunk := fh.read(8192): hasher.update(chunk)
+    else: raise err.LogExc(Exception("Path not found", apath))
 
-      elif path.isdir(apath):
-        from os import walk
-        for root, _, files in walk(apath):
-          for file in sorted(files):
-            fpath: str = path.join(root, file)
-            with open(fpath, 'rb') as fh:
-              while chunk := fh.read(8192): hasher.update(chunk)
-      
-      else: raise err.LogExc(Exception("Path not found", apath))
-
-    return hasher.hexdigest()
+  return hasher.hexdigest()

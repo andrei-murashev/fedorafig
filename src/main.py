@@ -1,17 +1,14 @@
 #!/bin/env python3
 
-# System imports
+# IMPORTS ======================================================================
 from os import path
-import argparse
-
-# Local imports
+from argparse import ArgumentParser, RawDescriptionHelpFormatter
 import cmn, err
 
-
 def main() -> None:
-# MAIN PARSER ==================================================================
-  parser_main = argparse.ArgumentParser(
-    formatter_class=argparse.RawDescriptionHelpFormatter,
+  # MAIN PARSER ================================================================
+  parser_main: ArgumentParser = ArgumentParser(
+    formatter_class=RawDescriptionHelpFormatter,
     prog='fedorafig',
     description="CLI utility for Fedora Linux to configure your system from a JSON file.",
     epilog="Find out more at `https://github.com/andrei-murashev/fedorafig`."
@@ -53,8 +50,8 @@ def main() -> None:
 
   parser_check.add_argument(
     'CFG_FILE',
+    type=str,
     action='store',
-    default=None,
     help="The configuration file for the utility tying all configuration assets."
   )
 
@@ -104,12 +101,12 @@ def main() -> None:
   parser_run.add_argument(
     'CFG_FILE',
     action='store',
-    default=None,
+    type=str,
     help="The configuration file for the utility tying all configuration assets."
   )
 
   parser_run.add_argument(
-    '-f', '--files-include',
+    '-c', '--copies-include',
     action='store_true',
     default=False,
     help="Includes the application of all file transfers."
@@ -130,25 +127,46 @@ def main() -> None:
   )
 
   parser_run.add_argument(
-    '-s', '--scripts-include',
+    '-pre', '--prerun-scripts-include',
     action='store_true',
     default=False,
-    help="Includes the running of all scripts at the end."
+    help="Includes running all prerun scripts before anything else."
+  )
+
+  parser_run.add_argument(
+    '-post', '--postrun-scripts-include',
+    action='store_true',
+    default=False,
+    help="Includes running all postrun scripts after everything else."
+  )
+
+  parser_run.add_argument(
+    '-i', '--interactive',
+    action='store_true',
+    default=False,
+    help="Will ask for confirmation when making changes to the file system."
   )
 
   # EXEC PARSER ================================================================
   parser_exec = subparsers.add_parser(
     'exec',
-    help="Runs commonlu-used scripts stored in the `common` folder, in the \
+    help="Runs commonly-used scripts stored in the `common` folder, in the \
       utility configuration folder."
   )
   parser_exec.set_defaults(func=exec)
 
   parser_exec.add_argument(
     'SCRIPT_NAME',
+    type=str,
     action='store',
-    default=None,
     help="The name of the script you wish to run."
+  )
+  
+  # TODO: The base parser
+  # BASE PARSER ================================================================
+  parser_base = subparsers.add_parser(
+    'base',
+    help="Used to form and restore bases for each configuration."
   )
 
   # UNINSTALL PARSER ===========================================================
@@ -189,37 +207,27 @@ def main() -> None:
     if callable(args['func']): func: Callable = args['func'];
     func(args)
 
-
+# MATCH SUBPARSERS =============================================================
 def check(args: cmn.ArgsDict) -> None:
-  from check import Check
-  try: Check(args)
-  except err.FedorafigExc: raise
+  from check import check
+  try: check(args)
+  except err.FedorafigExc: pass
   except (Exception, SystemExit) as e: raise err.LogExc(e)
 
-
-def run(args: cmn.ArgsDict) -> None: pass
-'''
-  from run import Run
-  try: Run(args)
-  except err.FedorafigExc: raise
+def run(args: cmn.ArgsDict) -> None:
+  from run import run
+  try: run(args)
+  except err.FedorafigExc: pass
   except (Exception, SystemExit) as e: raise err.LogExc(e)
-'''
-
 
 def exec(args: cmn.ArgsDict) -> None:
   fpath: str = path.join(cmn.COMMON_PATH, str(args['SCRIPT_NAME']))
   if not path.isfile(fpath): raise err.FedorafigExc(
     "script not found", fpath)
-  
-  from subprocess import run, CalledProcessError, PIPE
-  run(['chmod', 'u+x', fpath], check=True)
-  try: run([fpath], check=True, stderr=PIPE)
-  except CalledProcessError as e: raise err.FedorafigExc(e.stderr.decode())
+  cmn.shell('chmod u+x', fpath); cmn.shell(fpath)
 
 
 def uninstall(args: cmn.ArgsDict) -> None:
-  from subprocess import run
-
   apaths: list[str] = [cmn.PROG_DIR, path.join(cmn.EXEC_DIR, 'fedorafig')]
   if args['with_state']:
     if path.isdir(cmn.STATE_DIR): apaths.append(cmn.STATE_DIR)
@@ -229,10 +237,9 @@ def uninstall(args: cmn.ArgsDict) -> None:
   print("Removing the following paths:")
   for apath in apaths:
     print(' ', apath)
-
-  ans: str = input("Are you sure you want to proceed [y/N]: ")
+  ans: str = input("Are you sure you want to proceed? [y/N]: ")
   if ans == 'Y' or ans == 'y':
-    for apath in apaths: run(['rm', '-rf', apath], check=True)
+    for apath in apaths: cmn.shell('rm -rf', apath)
 
 
 if __name__ == '__main__':

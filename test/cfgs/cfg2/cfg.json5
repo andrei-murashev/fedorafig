@@ -1,4 +1,5 @@
 {
+  // Run scripts before and after config application
   work_CLIs: {
     prerun_scripts: ['hello.sh'],
     postrun_scripts: ['bye.sh'],
@@ -11,11 +12,12 @@
     ],
   },
 
+  // With copying configuration files for neofetch and lolcat.
   fun_CLIs: {
     postrun_scripts: ['neofetch.sh'],
 
     copies: [
-      ['neofetch', '~/.config/neofetch/.'],
+      ['neofetch/.', '~/.config/neofetch/.'],
       ['lolcat-wrapper.sh', '~/.local/bin/lolcat-wrapper'],
     ],
 
@@ -26,9 +28,14 @@
     ],
   },
 
-  // comment
+  // Installs package, temporarily enabled repos.
   comms: {
     repos: ['rpmfusion-free'],
     pkgs: ['telegram-desktop'],
+  },
+  
+  // Permanently enables repos
+  just_repos: {
+    repos: ['rpmfusion-free-updates', 'rpmsphere-caution']
   },
 }

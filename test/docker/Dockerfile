@@ -19,17 +19,17 @@ RUN \
 WORKDIR /home/user
 ENV USER=user
 ENV HOME=/home/user
+ENV PATH=/usr/local/bin:$PATH
 ENV FEDORAFIG_CFG_PATH=/home/user/.config/fedorafig
-ENV FEDORAFIG_SRC_PATH=/home/user/.local/bin/fedorafig
 
 # Install fedorafig
 RUN pip install json5
 COPY . $HOME/fedorafig
 COPY test/cfgs/cfg2/. $FEDORAFIG_CFG_PATH
+RUN export PATH="/usr/local/bin:$PATH"
 RUN cd fedorafig && chmod u+x install.sh && ./install.sh
 RUN rm -rf fedorafig
 
 # Run tests
-RUN chown -R user:user $HOME
 USER user
 CMD ["bash"]
