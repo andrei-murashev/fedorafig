@@ -1,6 +1,7 @@
-# IMPORTS ======================================================================
+# IMPORTS AND CONSTANTS ========================================================
 from os import path, environ; from typing import *
 import subprocess as sp; import err
+QUIET = False; VERBOSE = False
 
 # COMMON FUNCTIONS =============================================================
 def shell(*cmds: str, no_sudo: bool = False, split_str: str = ' ',
@@ -10,11 +11,24 @@ def shell(*cmds: str, no_sudo: bool = False, split_str: str = ' ',
       for subcmd in cmd.replace('\\ ', '__SPACE__').split(' ')]
     try: subcmds.insert(0, 'sudo') if environ['SUDO_USER'] \
       and not no_sudo else None
-    except: print('USER IS NOT ROOOOOT!!!')
-    try: out: sp.CompletedProcess = sp.run(subcmds, text=True, check=True,
-      stderr=sp.PIPE, **kwargs)
+    except: pass
+    if VERBOSE: print(' '.join(subcmds))
+
+    # TODO: Determine type
+    stdout_dest = sp.DEVNULL if QUIET else None
+    stderr_dest = sp.DEVNULL if QUIET else sp.PIPE
+
+    out: sp.CompletedProcess
+    try: out = sp.run(subcmds, text=True, check=True, stdout=stdout_dest, 
+      stderr=stderr_dest, **kwargs)
+    except TypeError: pass
     except sp.CalledProcessError as e: raise err.LogExc(e.stderr)
-    print(subcmds); return out
+    else: return out
+
+    try: out = sp.run(subcmds, text=True, check=True, stderr=stderr_dest,
+      **kwargs)
+    except sp.CalledProcessError as e: raise err.LogExc(e.stderr)
+    else: return out
 
 def resolve_path(apath_og: str) -> str:
   from os import environ
@@ -74,13 +88,12 @@ if __name__ == '__main__':
   print(f'export STATE_DIR="{STATE_DIR}"')
   exit(0)
 
-out: sp.CompletedProcess; print(REPOS_PATH)
+out: sp.CompletedProcess
 out = shell(f'dnf --setopt=reposdir={REPOS_PATH} repolist all', stdout=sp.PIPE)
 out = shell('awk {print\\ $1}', input=out.stdout, stdout=sp.PIPE)
 out = shell('tail -n +2', input=out.stdout, stdout=sp.PIPE)
 if not (REPOLIST := out.stdout.splitlines()): raise err.FedorafigExc(
   "No repos found")
-print(REPOLIST)
 
 # MANAGING ENTRIES =============================================================
 class Entry():
@@ -104,7 +117,6 @@ class Entry():
       for name in self.prerun_scripts if self.prerun_scripts]
     self.postrun_scripts = [path.join(SCRIPTS_PATH, name) \
       for name in self.postrun_scripts if self.postrun_scripts]
-    print(self.__dict__, end='\n\n')
 
 ENTRIES: List[Entry] = []
 def collect_entries(entries: List[Entry.SelfType]) -> None:

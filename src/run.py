@@ -17,9 +17,11 @@ def run(args: cmn.ArgsDict) -> None:
   if path.isfile(checksum_path):
     with open(checksum_path, 'r') as fh: checksum_old = fh.readline().strip()
   if not (path.isfile(checksum_path) and checksum_cur == checksum_old):
-    inter: bool = bool(args['interactive'])
-    if not inter: cmn.shell('fedorafig check', fpath, no_sudo=True)
-    else: cmn.shell('fedorafig check -i', fpath, no_sudo=True)
+    cmd: str = 'fedorafig check'
+    if bool(args['interactive']): cmd += ' -i'
+    if bool(args['verbose']): cmd += ' -v'
+    elif bool(args['quiet']): cmd += ' -q'
+    cmn.shell(cmd, fpath, no_sudo=True)
 
   with open(fpath, 'r') as fh: from json5 import load; data = load(fh)
 

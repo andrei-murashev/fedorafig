@@ -64,7 +64,7 @@ def extract_entries(data: Dict[str, Any]) -> List[cmn.Entry.SelfType]:
 
 # CHECK ENTRY SYNTAX AND PROPERTY EXISTENCE ====================================
 def entries_check(entries: List[cmn.Entry]) -> None:
-  # NOTE: uncomment later cmn.shell(f'dnf --setopt=reposdir={cmn.REPOS_PATH} --enablerepo=* makecache')
+  cmn.shell(f'dnf --setopt=reposdir={cmn.REPOS_PATH} --enablerepo=* makecache')
 
   repos_n_pkgs_pairs: List[Tuple[List[str], List[str]]] = []
   script_paths: List[str] = []; copies: List[List[str]] = []
@@ -74,21 +74,17 @@ def entries_check(entries: List[cmn.Entry]) -> None:
     copies += entry.copies
 
   for repos, pkgs in (pair for pair in repos_n_pkgs_pairs):
-    print("REPOS AND PKGS:", repos, pkgs)
     for repo in repos:
       if repo not in cmn.REPOLIST and repo != '*':
-        print("matched case 1")
         raise err.FedorafigExc(
         "Repo not found", repo)
     if pkgs and not repos:
       cmn.shell(f'dnf --setopt=reposdir={cmn.REPOS_PATH}',
         'repoquery', ' '.join(pkgs))
-      print("matched case 2")
     if pkgs and repos:
       repo_enables: List[str] = [f'--enablerepo={repo}' for repo in repos]
       cmn.shell(f'dnf --setopt=reposdir={cmn.REPOS_PATH}',
         ' '.join(repo_enables), 'repoquery', ' '.join(pkgs))
-      print("matched case 3")
 
   for copy_paths in copies:
     if not path.exists(copy_paths[0]): raise err.FedorafigExc(
@@ -97,8 +93,12 @@ def entries_check(entries: List[cmn.Entry]) -> None:
 # JSON5 TO ENTRIES LIST ========================================================
 def delete_checksums() -> None:
   from glob import glob
-  matches = glob(path.join(cmn.CFG.path, '*.json5'))
-  for match in matches: cmn.shell(f'rm -rf {match}.sha256 || True')
+  cfg_matches = glob(path.join(cmn.CFG.path, '*.json5'))
+  sum_matches = glob(path.join(cmn.STATE_DIR, '*.sha256'))
+
+  for sum_match in sum_matches:
+    if sum_match[:sum_match.rfind('.sha256')] not in cfg_matches:
+        cmn.shell('rm', sum_match)
 
 # CALCULATE CHECKSUM FOR DIR OR FILE ===========================================
 def calc_checksum(*apaths: str) -> str:
