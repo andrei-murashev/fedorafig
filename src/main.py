@@ -10,34 +10,36 @@ def main() -> None:
   parser_main: ArgumentParser = ArgumentParser(
     formatter_class=RawDescriptionHelpFormatter,
     prog='fedorafig',
-    description="CLI utility for Fedora Linux to configure your system from a JSON file.",
+    description="CLI utility for Fedora Linux to configure your system from a" \
+      " JSON5 file.",
     epilog="Find out more at `https://github.com/andrei-murashev/fedorafig`."
   )
 
   parser_main.add_argument(
     '-c', '--set-cfg-dir',
+    metavar='CFG_DIR',
     type=cmn.set_cfg_dir,
     action='store',
-    help="Changes the configuration directory."
+    help="Changes the configuration directory until it is changed again."
   )
+  output_types = parser_main.add_mutually_exclusive_group()
 
-  parser_main.add_argument(
+  output_types.add_argument(
     '-q', '--quiet',
     action='store_true',
     default=False,
     help="All output is suppressed."
   )
 
-  parser_main.add_argument(
+  output_types.add_argument(
     '-v', '--verbose',
     action='store_true',
     default=False,
-    help="Reports more concrete processes."
+    help="Shows all subprocesses that are run."
   )
 
   subparsers = parser_main.add_subparsers(
     title='commands',
-    description=""
   )
 
   # CHECK PARSER ===============================================================
@@ -52,7 +54,8 @@ def main() -> None:
     'CFG_FILE',
     type=str,
     action='store',
-    help="The configuration file for the utility tying all configuration assets."
+    help="The configuration file for the utility, tying togetger all \
+      configuration assets."
   )
 
   parser_check.add_argument(
@@ -100,9 +103,10 @@ def main() -> None:
 
   parser_run.add_argument(
     'CFG_FILE',
-    action='store',
     type=str,
-    help="The configuration file for the utility tying all configuration assets."
+    action='store',
+    help="The configuration file for the utility, tying togetger all \
+      configuration assets."
   )
 
   parser_run.add_argument(
@@ -162,13 +166,6 @@ def main() -> None:
     help="The name of the script you wish to run."
   )
   
-  # TODO: The base parser
-  # BASE PARSER ================================================================
-  parser_base = subparsers.add_parser(
-    'base',
-    help="Used to form and restore bases for each configuration."
-  )
-
   # UNINSTALL PARSER ===========================================================
   parser_uninstall = subparsers.add_parser(
     'uninstall',
@@ -199,9 +196,14 @@ def main() -> None:
     if e.code == 0: return
     raise err.FedorafigExc("Incorrect usage", exc=e)
 
-  if not any(opt for opt in args.values()):
-    raise err.FedorafigExc("No arguments")
-  
+  if not any(opt for opt in [val for key, val in args.items() if key not in
+    ['quiet', 'verbose']]): raise err.FedorafigExc("No arguments")
+
+  if args['quiet']:
+    from os import devnull; import sys; cmn.QUIET = True
+    with open(devnull, 'w') as fh: sys.stdout = fh; sys.stderr = fh
+  elif args['verbose']: cmn.VERBOSE = True
+
   if 'func' in args and args['func'] is not None:
     from typing import Callable
     if callable(args['func']): func: Callable = args['func'];
@@ -211,7 +213,7 @@ def main() -> None:
 def check(args: cmn.ArgsDict) -> None:
   from check import check
   try: check(args)
-  except err.FedorafigExc: pass
+  except err.FedorafigExc: raise
   except (Exception, SystemExit) as e: raise err.LogExc(e)
 
 def run(args: cmn.ArgsDict) -> None:
@@ -226,7 +228,7 @@ def exec(args: cmn.ArgsDict) -> None:
     "script not found", fpath)
   cmn.shell('chmod u+x', fpath); cmn.shell(fpath)
 
-
+# UNINSTALLATION ===============================================================
 def uninstall(args: cmn.ArgsDict) -> None:
   apaths: list[str] = [cmn.PROG_DIR, path.join(cmn.EXEC_DIR, 'fedorafig')]
   if args['with_state']:
@@ -241,6 +243,6 @@ def uninstall(args: cmn.ArgsDict) -> None:
   if ans == 'Y' or ans == 'y':
     for apath in apaths: cmn.shell('rm -rf', apath)
 
-
+# ENTRY POINT ==================================================================
 if __name__ == '__main__':
   main()
