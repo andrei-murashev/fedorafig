@@ -16,12 +16,14 @@ def run(args: cmn.ArgsDict) -> None:
     cmn.STATE_DIR, f'{path.basename(fpath)}.sha256')
   if path.isfile(checksum_path):
     with open(checksum_path, 'r') as fh: checksum_old = fh.readline().strip()
-  if not (path.isfile(checksum_path) and checksum_cur == checksum_old):
-    cmd: str = 'fedorafig check'
-    if bool(args['interactive']): cmd += ' -i'
-    if bool(args['verbose']): cmd += ' -v'
-    elif bool(args['quiet']): cmd += ' -q'
-    cmn.shell(cmd, fpath, no_sudo=True)
+  if not (path.isfile(checksum_path) and checksum_cur == checksum_old) and \
+    not args['no_check']:
+      cmd: str = 'fedorafig'
+      if bool(args['verbose']): cmd += ' -v'
+      elif bool(args['quiet']): cmd += ' -q'
+      cmd += ' check'
+      if bool(args['interactive']): cmd += ' -i'
+      cmn.shell(cmd, fpath, no_sudo=True)
 
   with open(fpath, 'r') as fh: from json5 import load; data = load(fh)
 

@@ -18,6 +18,7 @@ def shell(*cmds: str, no_sudo: bool = False, split_str: str = ' ',
     stdout_dest = sp.DEVNULL if QUIET else None
     stderr_dest = sp.DEVNULL if QUIET else sp.PIPE
 
+    # TODO: Firstly, try to run without sudo if possible even if it is provided.
     out: sp.CompletedProcess
     try: out = sp.run(subcmds, text=True, check=True, stdout=stdout_dest, 
       stderr=stderr_dest, **kwargs)
@@ -51,7 +52,8 @@ LOG_FILE: str     = path.join(STATE_DIR, 'log.txt')
 CFG_PTR_FILE: str = path.join(STATE_DIR, 'cfg_ptr.txt')
 
 # CHANGING THE CONFIGURATION DIRECTORY =========================================
-COPIES_PATH: str; REPOS_PATH: str; SCRIPTS_PATH: str; COMMON_PATH: str
+COPIES_PATH: str; REPOS_PATH: str; SCRIPTS_PATH: str; COMMON_PATH: str;
+BASES_PATH: str
 
 class CfgDir():
   def __init__(self) -> None:
@@ -61,11 +63,12 @@ class CfgDir():
   def path(self) -> str:
     if path.isfile(CFG_PTR_FILE):
       with open(CFG_PTR_FILE, 'r') as fh: self._path = fh.readline().strip()
-    global COPIES_PATH, REPOS_PATH, SCRIPTS_PATH, COMMON_PATH
+    global COPIES_PATH, REPOS_PATH, SCRIPTS_PATH, COMMON_PATH, BASES_PATH
     COPIES_PATH  = path.join(self._path, 'copies')
     REPOS_PATH   = path.join(self._path, 'repos', '.')
     SCRIPTS_PATH = path.join(self._path, 'scripts')
     COMMON_PATH  = path.join(self._path, 'common')
+    BASES_PATH   = path.join(self._path, 'bases')
     return self._path
 
   @path.setter

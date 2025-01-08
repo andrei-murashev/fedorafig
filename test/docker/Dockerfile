@@ -24,6 +24,7 @@ ENV FEDORAFIG_CFG_PATH=/home/user/.config/fedorafig
 
 # Install fedorafig
 RUN pip install json5
+RUN rm -rf /var/cache/dnf/*
 COPY . $HOME/fedorafig
 COPY test/cfgs/cfg2/. $FEDORAFIG_CFG_PATH
 RUN export PATH="/usr/local/bin:$PATH"
@@ -31,5 +32,6 @@ RUN cd fedorafig && chmod u+x install.sh && ./install.sh
 RUN rm -rf fedorafig
 
 # Run tests
+RUN chown -R $USER:$USER $HOME
 USER user
 CMD ["bash"]
