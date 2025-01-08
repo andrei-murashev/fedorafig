@@ -1,7 +1,7 @@
-# fedorafig v0.4.0-alpha
+# fedorafig v0.5.0-alpha
 <img
   alt="version static badge"
-  src="https://img.shields.io/badge/version-0.4.0-blue"
+  src="https://img.shields.io/badge/version-0.5.0-blue"
   height=25>
 <img
   alt="unlicense license static badge"
@@ -150,6 +150,16 @@ Options:
 + `-i`, `--interactive`     — Will ask for confirmation when making changes to
                             the file system.
 
+### Using `fedorafig base`
+Example: `fedorafig base -c cur_pkgs.txt`, 
+`sudo fedorafig base --restore old_pkgs.txt` \
+Options:
++ `-c`, `--create`          — Saves a list of all currently-installed packages
+                            in a file, whose name is the succeeding argument.
++ `-r`, `--restore`         — Installs and removes necessary packages to ensure
+                            that only the packages specified in the file, whose
+                            name is the succeeding argument, are installed.
+
 ### Using `fedorafig exec`
 Example: `fedorafig exec hi.sh`, `sudo fedorafig exec hi.sh` \
 Note: There are no options, and `fedorafig` is to be run with `sudo` to execute
@@ -165,10 +175,3 @@ Options:
 
 
 ## Features, detailed
-
-
-## Coming features
-### Saving preconfigured "base"
-Every configuration file will be accompanied by a pre- and post-configuration 
-base, which are just lists of packages that were and are installed on the system. 
-You will be able to restore to these bases.

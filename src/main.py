@@ -3,7 +3,7 @@
 # IMPORTS ======================================================================
 from os import path
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
-import cmn, err
+import sys, cmn, err
 
 def main() -> None:
   # MAIN PARSER ================================================================
@@ -110,6 +110,13 @@ def main() -> None:
   )
 
   parser_run.add_argument(
+    '-n', '--no-check',
+    action='store_true',
+    default=False,
+    help="Skips the check if it is otherwise required."
+  )
+
+  parser_run.add_argument(
     '-c', '--copies-include',
     action='store_true',
     default=False,
@@ -151,6 +158,28 @@ def main() -> None:
     help="Will ask for confirmation when making changes to the file system."
   )
 
+  # BASE PARSER ================================================================
+  parser_base = subparsers.add_parser(
+    'base',
+    help="Checks whether utility configurations are valid."
+  )
+  parser_base.set_defaults(func=base)
+  parser_opts = parser_base.add_mutually_exclusive_group()
+
+  parser_opts.add_argument(
+    '-c', '--create',
+    action='store',
+    help="Saves a list of all currently-installed packages in a file, whose \
+      name is the succeeding argument."
+  )
+
+  parser_opts.add_argument(
+    '-r', '--restore',
+    action='store',
+    help="Installs and removes necessary packages to ensure that only the \
+      packages specified in the file, whose name is the succeeding argument."
+  )
+
   # EXEC PARSER ================================================================
   parser_exec = subparsers.add_parser(
     'exec',
@@ -165,7 +194,7 @@ def main() -> None:
     action='store',
     help="The name of the script you wish to run."
   )
-  
+
   # UNINSTALL PARSER ===========================================================
   parser_uninstall = subparsers.add_parser(
     'uninstall',
@@ -188,10 +217,9 @@ def main() -> None:
   )
 
   # PARSE OPTIONS ==============================================================
-  try: args: cmn.ArgsDict = \
-    vars(parser_main.parse_args())
-  except err.FedorafigExc as e: raise
-  except Exception as e: raise err.LogExc(e)
+  try: args: cmn.ArgsDict = vars(parser_main.parse_args()); print(args)
+  # except err.FedorafigExc: raise
+  # except Exception as e: raise err.LogExc(e)
   except SystemExit as e:
     if e.code == 0: return
     raise err.FedorafigExc("Incorrect usage", exc=e)
@@ -211,16 +239,21 @@ def main() -> None:
 
 # MATCH SUBPARSERS =============================================================
 def check(args: cmn.ArgsDict) -> None:
-  from check import check
-  try: check(args)
-  except err.FedorafigExc: raise
-  except (Exception, SystemExit) as e: raise err.LogExc(e)
+  from check import check; check(args)
+  # try: check(args)
+  # except err.FedorafigExc: raise
+  # except (Exception, SystemExit) as e: raise err.LogExc(e)
 
 def run(args: cmn.ArgsDict) -> None:
-  from run import run
-  try: run(args)
-  except err.FedorafigExc: pass
-  except (Exception, SystemExit) as e: raise err.LogExc(e)
+  from run import run; run(args)
+  # try: run(args)
+  # except err.FedorafigExc: pass
+  # except (Exception, SystemExit) as e: raise err.LogExc(e)
+
+def base(args: cmn.ArgsDict) -> None:
+  from base import create, restore
+  if args['create']: create(args['create'])
+  elif args['restore']: restore(args['restore'])
 
 def exec(args: cmn.ArgsDict) -> None:
   fpath: str = path.join(cmn.COMMON_PATH, str(args['SCRIPT_NAME']))
@@ -245,4 +278,5 @@ def uninstall(args: cmn.ArgsDict) -> None:
 
 # ENTRY POINT ==================================================================
 if __name__ == '__main__':
-  main()
+  try: main()
+  except KeyboardInterrupt: exit(130)
