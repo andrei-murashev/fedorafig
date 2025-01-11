@@ -6,6 +6,8 @@ QUIET = False; VERBOSE = False
 # COMMON FUNCTIONS =============================================================
 def shell(*cmds: str, no_sudo: bool = False, split_str: str = ' ',
   **kwargs: Any) -> sp.CompletedProcess:
+    # TODO: ensure when `sudo su` is run the everything is actually done in
+    # the root user's home directory.
     from os import environ
     subcmds: List[str] = [subcmd.replace('__SPACE__', ' ') for cmd in cmds
       for subcmd in cmd.replace('\\ ', '__SPACE__').split(' ')]
@@ -18,15 +20,18 @@ def shell(*cmds: str, no_sudo: bool = False, split_str: str = ' ',
     stdout_dest = sp.DEVNULL if QUIET else None
     stderr_dest = sp.DEVNULL if QUIET else sp.PIPE
 
+    if 'check' not in kwargs.keys(): kwargs['check'] = True
     # TODO: Firstly, try to run without sudo if possible even if it is provided.
+    # TODO: Maybe get user directory by doing `sudo echo $USER` if `sudo`
+    # is detected.
     out: sp.CompletedProcess
-    try: out = sp.run(subcmds, text=True, check=True, stdout=stdout_dest, 
+    try: out = sp.run(subcmds, text=True, stdout=stdout_dest,
       stderr=stderr_dest, **kwargs)
     except TypeError: pass
     except sp.CalledProcessError as e: raise err.LogExc(e.stderr)
     else: return out
 
-    try: out = sp.run(subcmds, text=True, check=True, stderr=stderr_dest,
+    try: out = sp.run(subcmds, text=True, stderr=stderr_dest,
       **kwargs)
     except sp.CalledProcessError as e: raise err.LogExc(e.stderr)
     else: return out

@@ -217,7 +217,7 @@ def main() -> None:
   )
 
   # PARSE OPTIONS ==============================================================
-  try: args: cmn.ArgsDict = vars(parser_main.parse_args()); print(args)
+  try: args: cmn.ArgsDict = vars(parser_main.parse_args())
   # except err.FedorafigExc: raise
   # except Exception as e: raise err.LogExc(e)
   except SystemExit as e:
