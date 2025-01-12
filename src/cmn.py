@@ -6,46 +6,37 @@ QUIET = False; VERBOSE = False
 # COMMON FUNCTIONS =============================================================
 def shell(*cmds: str, no_sudo: bool = False, split_str: str = ' ',
   **kwargs: Any) -> sp.CompletedProcess:
-    # TODO: ensure when `sudo su` is run the everything is actually done in
-    # the root user's home directory.
     from os import environ
     subcmds: List[str] = [subcmd.replace('__SPACE__', ' ') for cmd in cmds
       for subcmd in cmd.replace('\\ ', '__SPACE__').split(' ')]
-    try: subcmds.insert(0, 'sudo') if environ['SUDO_USER'] \
-      and not no_sudo else None
-    except: pass
+
     if VERBOSE: print(' '.join(subcmds))
+    if 'SUDO_USER' in environ.keys() and environ['SUDO_USER'] and not no_sudo:
+      subcmds.insert(0, 'sudo')
 
-    # TODO: Determine type
-    stdout_dest = sp.DEVNULL if QUIET else None
-    stderr_dest = sp.DEVNULL if QUIET else sp.PIPE
-
+    stdout_dest: Optional[int] = sp.DEVNULL if QUIET else None
+    stderr_dest: Optional[int] = sp.DEVNULL if QUIET else sp.PIPE
     if 'check' not in kwargs.keys(): kwargs['check'] = True
-    # TODO: Firstly, try to run without sudo if possible even if it is provided.
-    # TODO: Maybe get user directory by doing `sudo echo $USER` if `sudo`
-    # is detected.
-    out: sp.CompletedProcess
-    try: out = sp.run(subcmds, text=True, stdout=stdout_dest,
-      stderr=stderr_dest, **kwargs)
-    except TypeError: pass
-    except sp.CalledProcessError as e: raise err.LogExc(e.stderr)
-    else: return out
+    if 'stdout' not in kwargs.keys(): kwargs['stdout'] = stdout_dest
 
-    try: out = sp.run(subcmds, text=True, stderr=stderr_dest,
-      **kwargs)
-    except sp.CalledProcessError as e: raise err.LogExc(e.stderr)
-    else: return out
+    out: sp.CompletedProcess
+    try: out = sp.run(subcmds, text=True, stderr=stderr_dest, **kwargs)
+    except sp.CalledProcessError as e: err.fedorafig_exc(e.stderr)
+    except BaseException as e: err.log_exc(e)
+    return out
+
 
 def resolve_path(apath_og: str) -> str:
-  from os import environ
-  try: apath: str = apath_og.replace('~',
-    path.join('/home', environ['SUDO_USER']))
-  except: apath = path.expanduser(apath_og)
+  from os import environ; apath: str
+  if 'SUDO_USER' not in environ.keys(): apath = path.expanduser(apath_og)
+  else:
+    if environ['SUDO_USER'] == 'root': apath = apath_og.replace('~', '/root')
+    else: apath = apath_og.replace('~', f'/home/{environ['SUDO_USER']}')
 
   try:
     apath = path.abspath(apath)
     if apath_og.endswith('/.'): apath += '/.'
-  except Exception as e: raise err.FedorafigExc(
+  except Exception as e: err.fedorafig_exc(
     "Unable to resolve path", apath, exc=e)
   return apath
 
@@ -78,7 +69,7 @@ class CfgDir():
 
   @path.setter
   def path(self, dpath: str) -> None:
-    if not path.isdir(resolve_path(dpath)): raise err.FedorafigExc(
+    if not path.isdir(resolve_path(dpath)): err.fedorafig_exc(
       "Directory not found", dpath)
     with open(CFG_PTR_FILE, 'w') as fh: fh.write(dpath)
     self._path = dpath
@@ -100,8 +91,8 @@ out: sp.CompletedProcess
 out = shell(f'dnf --setopt=reposdir={REPOS_PATH} repolist all', stdout=sp.PIPE)
 out = shell('awk {print\\ $1}', input=out.stdout, stdout=sp.PIPE)
 out = shell('tail -n +2', input=out.stdout, stdout=sp.PIPE)
-if not (REPOLIST := out.stdout.splitlines()): raise err.FedorafigExc(
-  "No repos found")
+if not (REPOLIST := out.stdout.splitlines()):
+  err.fedorafig_exc("No repos found")
 
 # MANAGING ENTRIES =============================================================
 class Entry():
@@ -116,7 +107,7 @@ class Entry():
     pkeys = ['repos', 'pkgs', 'copies', 'prerun_scripts', 'postrun_scripts']
     for key, val in entry.items():
       if key in pkeys: setattr(self, key, val)
-      else: raise err.FedorafigExc("Invalid key", key)
+      else: err.fedorafig_exc("Invalid key", key)
     
     self.copies = [[path.join(COPIES_PATH, paths[0]),
       *[resolve_path(apath) for apath in paths[1:]]]

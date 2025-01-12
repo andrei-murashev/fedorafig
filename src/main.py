@@ -218,14 +218,12 @@ def main() -> None:
 
   # PARSE OPTIONS ==============================================================
   try: args: cmn.ArgsDict = vars(parser_main.parse_args())
-  # except err.FedorafigExc: raise
-  # except Exception as e: raise err.LogExc(e)
+  except Exception as e: err.log_exc(e)
   except SystemExit as e:
     if e.code == 0: return
-    raise err.FedorafigExc("Incorrect usage", exc=e)
 
   if not any(opt for opt in [val for key, val in args.items() if key not in
-    ['quiet', 'verbose']]): raise err.FedorafigExc("No arguments")
+    ['quiet', 'verbose']]): err.fedorafig_exc("No arguments")
 
   if args['quiet']:
     from os import devnull; import sys; cmn.QUIET = True
@@ -235,30 +233,22 @@ def main() -> None:
   if 'func' in args and args['func'] is not None:
     from typing import Callable
     if callable(args['func']): func: Callable = args['func'];
-    func(args)
+    try: func(args)
+    except Exception as e: err.log_exc(e)
 
 # MATCH SUBPARSERS =============================================================
-def check(args: cmn.ArgsDict) -> None:
-  from check import check; check(args)
-  # try: check(args)
-  # except err.FedorafigExc: raise
-  # except (Exception, SystemExit) as e: raise err.LogExc(e)
+def check(args: cmn.ArgsDict) -> None: from check import check; check(args)
 
-def run(args: cmn.ArgsDict) -> None:
-  from run import run; run(args)
-  # try: run(args)
-  # except err.FedorafigExc: pass
-  # except (Exception, SystemExit) as e: raise err.LogExc(e)
+def run(args: cmn.ArgsDict) -> None: from run import run; run(args)
 
 def base(args: cmn.ArgsDict) -> None:
   from base import create, restore
-  if args['create']: create(args['create'])
-  elif args['restore']: restore(args['restore'])
+  if args['create']: create(str(args['create']))
+  elif args['restore']: restore(str(args['restore']))
 
 def exec(args: cmn.ArgsDict) -> None:
   fpath: str = path.join(cmn.COMMON_PATH, str(args['SCRIPT_NAME']))
-  if not path.isfile(fpath): raise err.FedorafigExc(
-    "script not found", fpath)
+  if not path.isfile(fpath): err.fedorafig_exc("script not found", fpath)
   cmn.shell('chmod u+x', fpath); cmn.shell(fpath)
 
 # UNINSTALLATION ===============================================================
