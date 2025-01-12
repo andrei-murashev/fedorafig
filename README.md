@@ -1,7 +1,7 @@
-# fedorafig v0.5.0-alpha
+# fedorafig v0.5.1-alpha
 <img
   alt="version static badge"
-  src="https://img.shields.io/badge/version-0.5.0-blue"
+  src="https://img.shields.io/badge/version-0.5.1-blue"
   height=25>
 <img
   alt="unlicense license static badge"
@@ -172,6 +172,3 @@ Options:
                             uninstalling.
 + `-c`, `--with-config`     — Also delete the configuration directory while
                             uninstalling.
-
-
-## Features, detailed
