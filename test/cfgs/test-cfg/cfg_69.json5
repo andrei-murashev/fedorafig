@@ -1,0 +1,8 @@
+{
+  postrun_scripts: null,
+  pkgs: [
+    "git",
+    "cmatrix",
+    "neofetch",
+  ],
+}

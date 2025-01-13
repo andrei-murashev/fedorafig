@@ -1,0 +1,7 @@
+{
+  repos: [
+    "rpmsphere",
+    "copr",
+    "fedora-cisco-openh256",
+  ],
+}

@@ -43,6 +43,8 @@ def run(args: cmn.ArgsDict) -> None:
   if args['postrun_scripts_include']: postrun_scripts_do()
 
 def repos_do() -> None:
+  cmn.shell('cp -rf /etc/yum.repos.d/ /etc/yum.repos.d.bak || True')
+  cmn.shell('rm -rf /etc/yum.repos.d/ || True')
   cmn.shell('mkdir -p /etc/yum.repos.d/')
   cmn.shell('cp -rf', cmn.REPOS_PATH, '/etc/yum.repos.d/')
   
@@ -59,14 +61,14 @@ def repos_do() -> None:
 
 
 def pkgs_do() -> None:
+  cmn.shell('dnf clean all')
   if not REPOS_DONE: repos_do()
   for entry in cmn.ENTRIES:
     if entry.repos and '*' in entry.pkgs:
       cmn.shell('dnf install -y --enablerepo=*', *entry.pkgs)
     elif entry.repos and entry.pkgs:
-      cmn.shell(f'dnf install -y', *[f'--enablerepo={repo}'
+      cmn.shell(f'dnf install -y', *[f'--repo={repo}'
         for repo in entry.repos], *entry.pkgs)
-      # NOTE: This does not disable other repos
     elif not entry.repos and entry.pkgs:
       cmn.shell('dnf install -y', *entry.pkgs)
 
