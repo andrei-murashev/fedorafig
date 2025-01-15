@@ -1,0 +1,10 @@
+{
+  entry: {
+    repos: [
+        "rpmsphere",
+        "copr",
+        "fedora-cisco-openh256",
+    ],
+    pkgs: null,
+}
+}

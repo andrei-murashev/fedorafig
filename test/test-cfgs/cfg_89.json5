@@ -1,0 +1,14 @@
+{
+  entry: {
+    pkgs_special: [
+        "telegram-desktop",
+        "mpv",
+        "vlc",
+    ],
+    repos_special: [
+        "rpmfusion-free",
+        "fedora",
+        "update",
+    ],
+}
+}

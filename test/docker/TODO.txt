@@ -1,0 +1,2 @@
+--- When there are no repos, and `--help` is called, there is an error message
+    saying that no repos were found, instead of printing the help message.

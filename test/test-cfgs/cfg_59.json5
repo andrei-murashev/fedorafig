@@ -1,0 +1,10 @@
+{
+  entry: {
+    postrun_scripts: [
+        "post1.sh",
+        "post2.sh",
+        "post3.sh",
+    ],
+    repos: null,
+}
+}

@@ -1,0 +1,16 @@
+{
+  entry: {
+    prerun_scripts: null,
+    postrun_scripts: null,
+    repos: [
+        "rpmsphere",
+        "copr",
+        "fedora-cisco-openh256",
+    ],
+    pkgs: [
+        "git",
+        "cmatrix",
+        "neofetch",
+    ],
+}
+}

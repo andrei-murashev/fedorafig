@@ -222,8 +222,10 @@ def main() -> None:
   except SystemExit as e:
     if e.code == 0: return
 
-  if not any(opt for opt in [val for key, val in args.items() if key not in
-    ['quiet', 'verbose']]): err.fedorafig_exc("No arguments")
+  try:
+    if not any(opt for opt in [val for key, val in args.items() if key not in
+      ['quiet', 'verbose']]): err.fedorafig_exc("No arguments")
+  except UnboundLocalError as e: err.fedorafig_exc("No arguments")
 
   if args['quiet']:
     from os import devnull; import sys; cmn.QUIET = True

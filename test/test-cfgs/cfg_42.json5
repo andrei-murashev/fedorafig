@@ -1,0 +1,11 @@
+{
+  entry: {
+    prerun_scripts: null,
+    postrun_scripts: null,
+    pkgs: [
+        "git",
+        "cmatrix",
+        "neofetch",
+    ],
+}
+}

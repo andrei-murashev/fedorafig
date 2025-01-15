@@ -1,0 +1,14 @@
+{
+  entry: {
+    prerun_scripts: [
+        "pre1.sh",
+        "pre2.sh",
+        "pre3.sh",
+    ],
+    postrun_scripts: [
+        "post1.sh",
+        "post2.sh",
+        "post3.sh",
+    ],
+}
+}

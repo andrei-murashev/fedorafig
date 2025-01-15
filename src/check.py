@@ -42,7 +42,7 @@ def extract_entries(data: Dict[str, Any]) -> List[cmn.Entry.SelfType]:
   entries: List[cmn.Entry.SelfType] = []
   for entry in data.values():
     if not isinstance(entry, Dict): err.fedorafig_exc(
-      "Entry is of an incompatible type", str(type(entry)))
+      "Entry is of an incompatible type", str(type(entry)), str(entry))
     for key in entry.keys():
       if not isinstance(key, str): err.fedorafig_exc(
         "Entry key is not a string", "Entry type:", str(type(key)))

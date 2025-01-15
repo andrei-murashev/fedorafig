@@ -1,0 +1,14 @@
+{
+  entry: {
+    prerun_scripts: [
+        "pre1.sh",
+        "pre2.sh",
+        "pre3.sh",
+    ],
+    pkgs: [
+        "git",
+        "cmatrix",
+        "neofetch",
+    ],
+}
+}

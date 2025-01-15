@@ -1,0 +1,9 @@
+{
+  entry: {
+    pkgs: [
+        "git",
+        "cmatrix",
+        "neofetch",
+    ],
+}
+}

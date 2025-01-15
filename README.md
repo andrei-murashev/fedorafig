@@ -89,10 +89,11 @@ The following example should give you a good idea of how to write your configura
     ],
   },
 
-  // Installs package, temporarily enabled repos.
+  // Installs package, temporarily disabling all repos,
+  // and enabling only the ones specified.
   comms: {
-    repos: ['rpmfusion-free'],
-    pkgs: ['telegram-desktop'],
+    repos: ['rpmfusion-free', 'fedora', 'updates'],
+    pkgs: ['telegram-desktop', 'mpv', 'vlc'],
   },
   
   // Permanently enables repos

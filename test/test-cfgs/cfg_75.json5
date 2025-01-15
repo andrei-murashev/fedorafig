@@ -1,0 +1,10 @@
+{
+  entry: {
+    repos: null,
+    pkgs: [
+        "git",
+        "cmatrix",
+        "neofetch",
+    ],
+}
+}

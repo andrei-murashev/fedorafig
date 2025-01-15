@@ -1,0 +1,10 @@
+{
+  entry: {
+    prerun_scripts: null,
+    repos: [
+        "rpmsphere",
+        "copr",
+        "fedora-cisco-openh256",
+    ],
+}
+}
