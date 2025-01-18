@@ -43,8 +43,10 @@ def run(args: cmn.ArgsDict) -> None:
   if args['postrun_scripts_include']: postrun_scripts_do()
 
 def repos_do() -> None:
-  cmn.shell('cp -rf /etc/yum.repos.d/ /etc/yum.repos.d.bak || True')
-  cmn.shell('rm -rf /etc/yum.repos.d/ || True')
+  try: cmn.shell('cp -rf /etc/yum.repos.d/ /etc/yum.repos.d.bak')
+  except: pass
+  try: cmn.shell('rm -rf /etc/yum.repos.d/')
+  except: pass
   cmn.shell('mkdir -p /etc/yum.repos.d/')
   cmn.shell('cp -rf', cmn.REPOS_PATH, '/etc/yum.repos.d/')
   

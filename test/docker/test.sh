@@ -54,7 +54,7 @@ set -e; for NUM in ${NUMS[@]}; do
     | grep -o "'[^']*'")
   while IFS= read -r FLAG_STR; do
     FLAG_STR=$(echo "$FLAG_STR" | sed "s/^'\(.*\)'$/\1/")
-    RUN_STR="fedorafig run cfg_"$NUM".json5 "$FLAG_STR""
+    RUN_STR="sudo fedorafig run cfg_"$NUM".json5 "$FLAG_STR""
     printf "\nRUNNING: %s\n" "$RUN_STR"; eval "$RUN_STR"
   done <<< "$FLAG_STRS"
   
