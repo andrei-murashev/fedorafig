@@ -1,5 +1,1 @@
-ERROR Docker failed to run from fedora40-test.dockerfile
-ERROR Docker could not build from fedora40-try.dockerfile
-ERROR Docker could not build from fedora40-try.dockerfile
-ERROR Docker failed to run from fedora40-test.dockerfile
-ERROR Docker failed to run from fedora40-test.dockerfile
+ERROR: Docker failed to run from fedora40-test.dockerfile

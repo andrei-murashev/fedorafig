@@ -1,6 +1,6 @@
 {
   entry: {
-    prerun_scripts: null,
+    prerun_scripts: ,
     postrun_scripts: [
         "post1.sh",
         "post2.sh",
@@ -8,8 +8,8 @@
     ],
     repos: [
         "rpmsphere",
-        "copr",
-        "fedora-cisco-openh256",
+        "copr:bgstack15:AfterMozilla",
+        "fedora-cisco-openh264",
     ],
     pkgs: [
         "git",

@@ -1,7 +1,7 @@
 {
   entry: {
-    prerun_scripts: null,
-    postrun_scripts: null,
+    prerun_scripts: ,
+    postrun_scripts: ,
     pkgs_special: [
         "telegram-desktop",
         "mpv",

@@ -5,7 +5,7 @@
         "pre2.sh",
         "pre3.sh",
     ],
-    postrun_scripts: null,
+    postrun_scripts: ,
     pkgs_special: [
         "telegram-desktop",
         "mpv",

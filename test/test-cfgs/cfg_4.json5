@@ -5,12 +5,14 @@
         "pre2.sh",
         "pre3.sh",
     ],
-    postrun_scripts: [
-        "post1.sh",
-        "post2.sh",
-        "post3.sh",
+    repos: [
+        "rpmsphere",
+        "copr:bgstack15:AfterMozilla",
+        "fedora-cisco-openh264",
     ],
-    repos: null,
-    pkgs: null,
-}
-}
+    pkgs: [
+        "git",
+        "cmatrix",
+        "neofetch",
+    ],
+}}

@@ -10,10 +10,9 @@
         "post2.sh",
         "post3.sh",
     ],
-    repos: [
-        "rpmsphere",
-        "copr",
-        "fedora-cisco-openh256",
+    pkgs: [
+        "git",
+        "cmatrix",
+        "neofetch",
     ],
-}
-}
+}}

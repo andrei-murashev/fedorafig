@@ -1,10 +1,10 @@
 {
   entry: {
-    prerun_scripts: null,
+    prerun_scripts: ,
     repos: [
         "rpmsphere",
-        "copr",
-        "fedora-cisco-openh256",
+        "copr:bgstack15:AfterMozilla",
+        "fedora-cisco-openh264",
     ],
 }
 }

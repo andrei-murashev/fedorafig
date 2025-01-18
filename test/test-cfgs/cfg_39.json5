@@ -1,8 +1,8 @@
 {
   entry: {
-    prerun_scripts: null,
-    postrun_scripts: null,
-    repos: null,
+    prerun_scripts: ,
+    postrun_scripts: ,
+    repos: ,
     pkgs: [
         "git",
         "cmatrix",

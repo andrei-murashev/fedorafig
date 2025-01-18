@@ -1,15 +1,16 @@
 from typing import *
 
 subentries: Dict[str, List[List[str]]] = {
-  'prerun_scripts': [['pre1.sh', 'pre2.sh', 'pre3.sh'],     ['NONE'], ['EMPTY']],
-  'postrun_scripts': [['post1.sh', 'post2.sh', 'post3.sh'], ['NONE'], ['EMPTY']],
-  'repos': [['rpmsphere', 'copr', 'fedora-cisco-openh256'], ['NONE'], ['EMPTY']],
-  'pkgs': [['git', 'cmatrix', 'neofetch'],                  ['NONE'], ['EMPTY']],
+  'prerun_scripts': [['pre1.sh', 'pre2.sh', 'pre3.sh'],     ['EMPTY']],
+  'postrun_scripts': [['post1.sh', 'post2.sh', 'post3.sh'], ['EMPTY']],
+  'repos': [['rpmsphere', 'copr:bgstack15:AfterMozilla',
+             'fedora-cisco-openh264'], ['EMPTY']],
+  'pkgs': [['git', 'cmatrix', 'neofetch'],                  ['EMPTY']],
 }
 
 special_subentries: Dict[str, List[List[str]]] = {
-  'prerun_scripts': [['pre1.sh', 'pre2.sh', 'pre3.sh'],     ['NONE'], ['EMPTY']],
-  'postrun_scripts': [['post1.sh', 'post2.sh', 'post3.sh'], ['NONE'], ['EMPTY']],
+  'prerun_scripts': [['pre1.sh', 'pre2.sh', 'pre3.sh'],     ['EMPTY']],
+  'postrun_scripts': [['post1.sh', 'post2.sh', 'post3.sh'], ['EMPTY']],
   'pkgs_special': [['telegram-desktop', 'mpv', 'vlc']],
   'repos_special': [['rpmfusion-free', 'fedora', 'update']]
 }
@@ -30,12 +31,13 @@ def list_dicts_product(input_dict: Dict[str, List[List[str]]]) \
 
 proto_cfg_dicts: List[Dict[str, List[str]]] \
   = list_dicts_product(subentries) + list_dicts_product(special_subentries)
+  # NOTE: ^ Could cause issues
+
 cfg_dicts: List[Dict[str, Optional[List[str]]]] = []
 for cfg_dict in proto_cfg_dicts:
   tmp_dict: Dict[str, Optional[List[str]]] = {}
   for key in cfg_dict.keys():
-    if cfg_dict[key] == ['NONE']: tmp_dict[key] = None
-    elif cfg_dict[key] != ['EMPTY']: tmp_dict[key] = cfg_dict[key]
+    if cfg_dict[key] != ['EMPTY']: tmp_dict[key] = cfg_dict[key]
   cfg_dicts.append(tmp_dict)
 
 from json5 import dump; num: int = 0
@@ -44,5 +46,5 @@ for cfg_dict in cfg_dicts:
     fh.write('{\n')
     fh.write('  entry: ')
     dump(cfg_dict, fh, indent=4)
-    fh.write('\n}')
+    fh.write('}')
   num += 1

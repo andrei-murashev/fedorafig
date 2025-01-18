@@ -5,6 +5,14 @@
         "pre2.sh",
         "pre3.sh",
     ],
-    postrun_scripts: null,
-}
-}
+    pkgs_special: [
+        "telegram-desktop",
+        "mpv",
+        "vlc",
+    ],
+    repos_special: [
+        "rpmfusion-free",
+        "fedora",
+        "update",
+    ],
+}}

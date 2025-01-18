@@ -1,5 +1,5 @@
 {
   entry: {
-    pkgs: null,
+    pkgs: ,
 }
 }

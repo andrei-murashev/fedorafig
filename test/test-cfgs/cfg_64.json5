@@ -1,11 +1,11 @@
 {
   entry: {
-    postrun_scripts: null,
+    postrun_scripts: ,
     repos: [
         "rpmsphere",
-        "copr",
-        "fedora-cisco-openh256",
+        "copr:bgstack15:AfterMozilla",
+        "fedora-cisco-openh264",
     ],
-    pkgs: null,
+    pkgs: ,
 }
 }

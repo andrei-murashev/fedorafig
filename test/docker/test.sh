@@ -45,42 +45,26 @@ set -e; for NUM in ${NUMS[@]}; do
     FLAG_STR=$(echo "$FLAG_STR" | sed "s/^'\(.*\)'$/\1/")
     if ! ( [[ "$FLAG_STR" == *"-n"* ]] && ( [[ "$FLAG_STR" == *'-c'* ]] || \
       [[ "$FLAG_STR" == *'-s'* ]] )); then
-        fedorafig check cfg_"$NUM".json5 "$FLAG_STR"
+        RUN_STR="fedorafig check cfg_"$NUM".json5 "$FLAG_STR""
+        printf "\nRUNNING: %s\n" "$RUN_STR"; eval "$RUN_STR"
     fi
   done <<< "$FLAG_STRS"
 
-  : "
-  COMBS=(); for FLAG_STR in "${FLAGS[@]}"; do
-    #if ! ( [[ "$FLAG_STR" == *"-n"* ]] && ( [[ "FLAG_STR" == *'-c'* ]] || \
-    #  [[ "FLAG_STR" == *'-s'* ]] )); then
-        echo $FLAG_STR
-    #fi
-  done
-  "
-  : "
-  for OPTION in $COMBS; do
-    fedorafig check $OPTION cfg_$NUM.json5
-  done
-
-  COMBS=()
-  for OPTIONS in $COMBS; do
-    sudo fedorafig run $OPTIONS cfg_$NUM.json5
-  done;
-  "
+  FLAG_STRS=$(len_varied_combs '-h' '-n' '-c' '-p' '-r' '-pre' 'post' \
+    | grep -o "'[^']*'")
+  while IFS= read -r FLAG_STR; do
+    FLAG_STR=$(echo "$FLAG_STR" | sed "s/^'\(.*\)'$/\1/")
+    RUN_STR="fedorafig run cfg_"$NUM".json5 "$FLAG_STR""
+    printf "\nRUNNING: %s\n" "$RUN_STR"; eval "$RUN_STR"
+  done <<< "$FLAG_STRS"
+  
+  fedorafig exec exec1.sh exec2.sh exec3.sh
+  sudo fedorafig exec exec1.sh exec2.sh exec3.sh
 done
 
-: "
-fedorafig base 
-sudo fedorafig base 
-
-fedorafig exec exec1.sh exec2.sh exec3.sh
-sudo fedorafig exec
+sudo dnf remove cmatrix neofetch lolcat
+fedorafig base -c base.txt
+sudo dnf install cmatrix neofetch lolcat
+sudo fedorafig base -r base.txt
 
 yes | fedorafig uninstall -c -s
-if [ -d ~/.config/fedorafig/ ]      || \
-   [ -d ~/.local/lib/fedorafig/ ]   || \
-   [ -d ~/.local/state/fedorafig/ ]
-then exit 1; fi
-"
-
-#len_varied_combs '-h' '-k' '-c' '-s' '-n'

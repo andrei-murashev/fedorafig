@@ -1,5 +1,5 @@
 {
   entry: {
-    postrun_scripts: null,
+    postrun_scripts: ,
 }
 }

@@ -1,6 +1,6 @@
 {
   entry: {
-    postrun_scripts: null,
-    pkgs: null,
+    postrun_scripts: ,
+    pkgs: ,
 }
 }

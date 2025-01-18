@@ -42,15 +42,15 @@ def extract_entries(data: Dict[str, Any]) -> List[cmn.Entry.SelfType]:
   entries: List[cmn.Entry.SelfType] = []
   for entry in data.values():
     if not isinstance(entry, Dict): err.fedorafig_exc(
-      "Entry is of an incompatible type", str(type(entry)), str(entry))
+      "Entry is of an incompatible type:", str(type(entry)) + '\n', str(entry))
     for key in entry.keys():
       if not isinstance(key, str): err.fedorafig_exc(
-        "Entry key is not a string", "Entry type:", str(type(key)))
+        "Entry key is not a string:", str(type(key)) + '\n', str(entry))
 
     for val in entry.values():
       if not isinstance(val, List): err.fedorafig_exc(
-        "Entry value is not a list is not a list", "Value type:",
-        str(type(val)))
+        "Entry value is not a list:", "Value type:", str(type(val)) + '\n',
+        str(entry))
 
       for elem in val:
         if isinstance(elem, List):
@@ -65,6 +65,7 @@ def extract_entries(data: Dict[str, Any]) -> List[cmn.Entry.SelfType]:
 # CHECK ENTRY SYNTAX AND PROPERTY EXISTENCE ====================================
 def entries_check(entries: List[cmn.Entry]) -> None:
   cmn.shell(f'dnf --setopt=reposdir={cmn.REPOS_PATH} --enablerepo=* makecache')
+  cmn.shell('dnf clean metadata dbcache expire-cache')
 
   repos_n_pkgs_pairs: List[Tuple[List[str], List[str]]] = []
   script_paths: List[str] = []; copies: List[List[str]] = []

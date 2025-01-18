@@ -5,7 +5,7 @@
         "post2.sh",
         "post3.sh",
     ],
-    repos: null,
-    pkgs: null,
+    repos: ,
+    pkgs: ,
 }
 }

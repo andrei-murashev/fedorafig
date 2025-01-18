@@ -1,4 +1,4 @@
-[copr:copr.fedorainfracloud.org:bgstack15:AfterMozilla]
+[copr:bgstack15:AfterMozilla]
 name=Copr repo for AfterMozilla owned by bgstack15
 baseurl=https://download.copr.fedorainfracloud.org/results/bgstack15/AfterMozilla/fedora-$releasever-$basearch/
 type=rpm-md

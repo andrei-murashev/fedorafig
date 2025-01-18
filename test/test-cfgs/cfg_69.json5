@@ -1,6 +1,6 @@
 {
   entry: {
-    postrun_scripts: null,
+    postrun_scripts: ,
     pkgs: [
         "git",
         "cmatrix",
