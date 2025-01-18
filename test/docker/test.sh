@@ -58,9 +58,10 @@ set -e; for NUM in ${NUMS[@]}; do
     printf "\nRUNNING: %s\n" "$RUN_STR"; eval "$RUN_STR"
   done <<< "$FLAG_STRS"
   
-  fedorafig exec exec1.sh exec2.sh exec3.sh
-  sudo fedorafig exec exec1.sh exec2.sh exec3.sh
 done
+
+fedorafig exec exec1.sh exec2.sh exec3.sh
+sudo fedorafig exec exec1.sh exec2.sh exec3.sh
 
 sudo dnf remove cmatrix neofetch lolcat
 fedorafig base -c base.txt
